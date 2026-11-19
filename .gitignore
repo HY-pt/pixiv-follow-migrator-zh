@@ -1,0 +1,14 @@
+# 本地临时文件（上传脚本、构建缓存）
+_upload*.js
+_fixpath.js
+_add-meta.js
+
+# 依赖与产物
+node_modules/
+*.log
+
+# 编辑器/系统
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
