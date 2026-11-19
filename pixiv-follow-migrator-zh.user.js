@@ -1,14 +1,12 @@
 // ==UserScript==
-// @name Pixiv Follow Migrator
-// @namespace http://tampermonkey.net/
+// @name Pixiv Follow Migrator 中文增强版
+// @namespace https://github.com/HY-pt/pixiv-follow-migrator-zh
 // @version 3.5.0
 // @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。中文界面本地增强版。
 // @author HY-pt
 // @license MIT
 // @homepageURL https://github.com/HY-pt/pixiv-follow-migrator-zh
 // @supportURL https://github.com/HY-pt/pixiv-follow-migrator-zh/issues
-// @downloadURL https://raw.githubusercontent.com/HY-pt/pixiv-follow-migrator-zh/main/pixiv-follow-migrator-zh.user.js
-// @updateURL https://raw.githubusercontent.com/HY-pt/pixiv-follow-migrator-zh/main/pixiv-follow-migrator-zh.meta.js
 // @match https://www.pixiv.net/*
 // @grant GM_setValue
 // @grant GM_getValue
@@ -19,9 +17,9 @@
 //    本分支维护者：HY-pt  https://github.com/HY-pt/pixiv-follow-migrator-zh
 //    在汉化基础上修了：①抓取只翻一页就停（pixiv 单页上限 100）②关注节奏过于规律被限流
 //    ③列表不区分公开/私密 ④撞到限流后可能丢失待办列表 ⑤可重复点击执行 ⑥迁移后关注顺序整体颠倒。
-//    已把 @downloadURL / @updateURL 指向本仓库（不再指向 Greasy Fork），
-//    这样既不会被上游 v3.0 覆盖回英文原版，又能从本仓库正常收到更新。
-//    @name 与 @namespace 有意保持不变，确保新版能覆盖安装旧版而不是并排出现两个面板。
+//    分发：GitHub release 提供文件快照，Greasy Fork 作为更新源（站内自动托管 updateURL）。
+//    因此本文件刻意不含 @downloadURL / @updateURL —— Greasy Fork 规则禁止指向外部替代源。
+//    @name / @namespace 与上游区分，避免同名混淆；安装前请先卸载上游旧版，否则会并存两个面板。
 (function () {
   'use strict';
   // ── CSRF 令牌拦截（在 Pixiv 自身脚本之前执行） ─────────────────────────────

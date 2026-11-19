@@ -59,14 +59,19 @@
 
 1. 安装 [Tampermonkey](https://www.tampermonkey.net/)（Edge / Chrome）或 Violentmonkey
 2. 打开 [`pixiv-follow-migrator-zh.user.js`](pixiv-follow-migrator-zh.user.js)，点「安装」
-3. 或者直接访问：
+3. 或者从 GitHub Release 下载最新附件：
+   https://github.com/HY-pt/pixiv-follow-migrator-zh/releases/latest
+4. 或者从 Greasy Fork 安装（自动更新来源）：
    ```
    https://raw.githubusercontent.com/HY-pt/pixiv-follow-migrator-zh/main/pixiv-follow-migrator-zh.user.js
    ```
 
-> **升级提示**：本分支刻意保持 `@name` 与 `@namespace` 与上游一致，
-> 所以安装新版会**覆盖**你已有的旧版，不会出现两个面板并存。
-> `@downloadURL` / `@updateURL` 已指向本仓库，可正常收到更新。
+> **与上游并存提示**：本分支的 `@name`（含「中文增强版」后缀）与 `@namespace`
+> 都已与上游区分，因此在 Tampermonkey 里会被视为**独立脚本**。
+> **安装前请先删掉上游旧版**，否则会同时出现两个面板。
+>
+> **更新渠道**：GitHub Release 只提供文件快照与下载；自动更新统一走 Greasy Fork。
+> 因此本脚本刻意**不含** `@downloadURL` / `@updateURL`（Greasy Fork 规则禁止指向外部替代源）。
 
 ---
 

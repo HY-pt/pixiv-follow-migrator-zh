@@ -22,14 +22,16 @@ s = s.replace(/^\/\/ @updateURL .*\r?\n/m, '');
 
 // ── 1b. 署名与仓库元数据（本分支由 HY-pt 维护；上游 MIT 版权见 LICENSE）─────
 const REPO = 'HY-pt/pixiv-follow-migrator-zh';
-const RAW = 'https://raw.githubusercontent.com/' + REPO + '/main';
+// 发布到 Greasy Fork 时必须区分于上游（避免同名劫持判定），并用自己的 namespace。
+// 同时**不得**带 @downloadURL / @updateURL 指向外部源——Greasy Fork 规则禁止
+// "alternate download URLs"，它会自行注入其站内地址作为更新源。
+s = s.replace(/^\/\/ @name .*$/m, '// @name Pixiv Follow Migrator 中文增强版');
+s = s.replace(/^\/\/ @namespace .*$/m, '// @namespace https://github.com/' + REPO);
 s = s.replace(/^\/\/ @author .*$/m, '// @author HY-pt');
 s = s.replace('// @license MIT',
   '// @license MIT\n' +
   '// @homepageURL https://github.com/' + REPO + '\n' +
-  '// @supportURL https://github.com/' + REPO + '/issues\n' +
-  '// @downloadURL ' + RAW + '/pixiv-follow-migrator-zh.user.js\n' +
-  '// @updateURL ' + RAW + '/pixiv-follow-migrator-zh.meta.js');
+  '// @supportURL https://github.com/' + REPO + '/issues');
 
 s = s.replace('// ==/UserScript==',
   '// ==/UserScript==\n' +
@@ -37,9 +39,9 @@ s = s.replace('// ==/UserScript==',
   '//    本分支维护者：HY-pt  https://github.com/HY-pt/pixiv-follow-migrator-zh\n' +
   '//    在汉化基础上修了：①抓取只翻一页就停（pixiv 单页上限 100）②关注节奏过于规律被限流\n' +
   '//    ③列表不区分公开/私密 ④撞到限流后可能丢失待办列表 ⑤可重复点击执行 ⑥迁移后关注顺序整体颠倒。\n' +
-  '//    已把 @downloadURL / @updateURL 指向本仓库（不再指向 Greasy Fork），\n' +
-  '//    这样既不会被上游 v3.0 覆盖回英文原版，又能从本仓库正常收到更新。\n' +
-  '//    @name 与 @namespace 有意保持不变，确保新版能覆盖安装旧版而不是并排出现两个面板。');
+  '//    分发：GitHub release 提供文件快照，Greasy Fork 作为更新源（站内自动托管 updateURL）。\n' +
+  '//    因此本文件刻意不含 @downloadURL / @updateURL —— Greasy Fork 规则禁止指向外部替代源。\n' +
+  '//    @name / @namespace 与上游区分，避免同名混淆；安装前请先卸载上游旧版，否则会并存两个面板。');
 
 // ── 2. 注释小节标题 ─────────────────────────────────────────────────────────
 const commentPairs = [
