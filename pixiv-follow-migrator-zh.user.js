@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Pixiv Follow Migrator 中文增强版
 // @namespace https://github.com/HY-pt/pixiv-follow-migrator-zh
-// @version 3.5.0
+// @version 3.5.1
 // @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。中文界面本地增强版。
 // @author HY-pt
 // @license MIT
@@ -237,8 +237,10 @@
     .pfm-footer-credit {
       text-align: center; margin-top: 8px; padding-bottom: 4px;
       font-size: 10px; color: ${sub}; font-weight: 500; opacity: 0.8; transition: color .15s;
+      text-decoration: none; cursor: pointer;
     }
-    .pfm-footer-credit:hover { color: ${text}; }
+    .pfm-footer-credit:hover { color: ${text}; text-decoration: underline; }
+    .pfm-footer-credit:focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; border-radius: 4px; }
 
     /* 进度条 */
     #pfm-prog { display: none; margin-top: 8px; }
@@ -475,7 +477,7 @@
     panel.id = 'pfm';
     panel.innerHTML = `
       <div id="pfm-header">
-        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.5.0 中文</span></div>
+        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.5.1 中文</span></div>
         <div id="pfm-hbtns">
           <button id="pfm-min" class="pfm-winbtn" title="最小化到悬浮图标" aria-label="最小化"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2.2" y="7.4" width="7" height="1.8" rx=".5" fill="currentColor"/></svg></button>
         </div>
@@ -586,7 +588,7 @@
           </div>
         </div>
 
-        <div class="pfm-footer-credit">作者 HY-pt · 上游 godlessX v3.0 (MIT)</div>
+        <a class="pfm-footer-credit" href="https://github.com/HY-pt/pixiv-follow-migrator-zh" target="_blank" rel="noopener noreferrer" title="在 GitHub 打开本仓库（新标签页）">作者 HY-pt · 上游 godlessX v3.0 (MIT)</a>
       </div>
     `;
     document.body.appendChild(panel);

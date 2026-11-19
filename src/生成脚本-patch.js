@@ -21,7 +21,7 @@ const report = [];
 const counts = new Map();
 
 // ── 1. 脚本头 ───────────────────────────────────────────────────────────────
-s = s.replace(/^\/\/ @version .*$/m, '// @version 3.5.0');
+s = s.replace(/^\/\/ @version .*$/m, '// @version 3.5.1');
 s = s.replace(/^\/\/ @description .*$/m,
   '// @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。中文界面本地增强版。');
 s = s.replace(/^\/\/ @downloadURL .*\r?\n/m, '');
@@ -74,7 +74,7 @@ const textPairs = [
    '.pfm-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }\n' +
    '    .pfm-title-icon { width: 18px; height: 18px; display: block; flex: 0 0 auto; }'],
   ['🔁 Pixiv Migrator <span class="pfm-title-version">v3.0</span>',
-   '<img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.5.0 中文</span>'],
+   '<img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.5.1 中文</span>'],
   // 合并「最小化」与「关闭」：只保留一个按钮
   ["          <button id=\"pfm-min\" title=\"Minimize\">—</button>\n          <button id=\"pfm-x\" title=\"Close\">✕</button>",
    "          <button id=\"pfm-min\" class=\"pfm-winbtn\" title=\"最小化到悬浮图标\" aria-label=\"最小化\"><svg viewBox=\"0 0 12 12\" width=\"12\" height=\"12\" aria-hidden=\"true\"><rect x=\"2.2\" y=\"7.4\" width=\"7\" height=\"1.8\" rx=\".5\" fill=\"currentColor\"/></svg></button>"],
@@ -116,7 +116,18 @@ const textPairs = [
   ['📂 Import list', '📂 导入列表'],
   ['🗑 Clear list', '🗑 清空列表'],
   // 署名：本分支作者 + 上游来源（MIT 要求保留上游署名）
-  ['Made by Misery', '作者 HY-pt · 上游 godlessX v3.0 (MIT)'],
+  // 原版这行只是个不可点的 div（却有 hover 变色，看着像按钮），改成指向仓库的链接
+  ['<div class="pfm-footer-credit">Made by Misery</div>',
+   '<a class="pfm-footer-credit" href="https://github.com/HY-pt/pixiv-follow-migrator-zh"' +
+   ' target="_blank" rel="noopener noreferrer" title="在 GitHub 打开本仓库（新标签页）">' +
+   '作者 HY-pt · 上游 godlessX v3.0 (MIT)</a>'],
+  // 链接态：去掉下划线与浏览器默认的链接蓝，hover 时才给下划线做可点反馈
+  ['      font-size: 10px; color: ${sub}; font-weight: 500; opacity: 0.8; transition: color .15s;',
+   '      font-size: 10px; color: ${sub}; font-weight: 500; opacity: 0.8; transition: color .15s;\n' +
+   '      text-decoration: none; cursor: pointer;'],
+  ['    .pfm-footer-credit:hover { color: ${text}; }',
+   '    .pfm-footer-credit:hover { color: ${text}; text-decoration: underline; }\n' +
+   '    .pfm-footer-credit:focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; border-radius: 4px; }'],
 
   ['✅ ${added} users found & saved on this page', '✅ 本页找到并保存 ${added} 位用户'],
   ['❌ Go to a user profile first.', '❌ 请先登录 pixiv 并打开任意用户主页。'],
