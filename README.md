@@ -109,6 +109,8 @@ pixiv-follow-migrator-zh.user.js              产物
 pixiv-follow-migrator-zh.meta.js              产物（仅 UserScript 头，供更新比对）
 ```
 
+版本号规则与 Release 说明格式见 [docs/发版规范.md](docs/发版规范.md)。
+
 重新生成并检查语法：
 
 ```bash
