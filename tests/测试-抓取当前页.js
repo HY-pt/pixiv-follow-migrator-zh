@@ -70,7 +70,7 @@ const document = {
 const storage = new Map();
 const sandbox = {
   console, document,
-  location: { pathname: '/users/999999', href: 'https://www.pixiv.net/users/999999' },
+  location: { pathname: '/users/999999', search: '?rest=hide', href: 'https://www.pixiv.net/users/999999/following?rest=hide' },
   localStorage: { getItem: () => null, setItem() {} },
   getComputedStyle: () => ({ backgroundColor: 'rgb(255,255,255)' }),
   setTimeout, clearTimeout, setInterval, clearInterval,
@@ -95,8 +95,7 @@ const click = id => (registry.get(id)._events.click || []).forEach(fn => fn({ ta
 const getList = () => JSON.parse(storage.get('pfm_list') || '[]');
 const status = () => registry.get('pfm-status').textContent;
 
-// 默认可见性设为私密，验证打标
-qs('#pfm-restrict').value = '1';
+// 私密标签页（?rest=hide）：本页用户应全部标为私密
 click('pfm-scrape');
 
 const L = getList();
@@ -113,5 +112,12 @@ const okTag = L.every(u => u.restrict === '1');
 console.log();
 console.log(okOrder ? 'PASS 顺序与 DOM 一致（新→旧）' : 'FAIL 顺序不符，期望 ' + JSON.stringify(expect));
 console.log(okCount ? 'PASS 去重+排除自己正确' : 'FAIL 条数应为 5');
-console.log(okTag ? 'PASS 按默认可见性打标' : 'FAIL 可见性标记错误');
-process.exit(okOrder && okCount && okTag ? 0 : 1);
+console.log(okTag ? 'PASS 按当前标签页打标（私密）' : 'FAIL 可见性标记错误');
+
+// 同一页再抓一次：不应重复入库，提示应说明「均已在列表中」（而不是「新增 0 位」）
+click('pfm-scrape');
+const again = status();
+const okAgain = /均已在列表中/.test(again) && getList().length === 5;
+console.log('重复抓取状态栏:', again);
+console.log(okAgain ? 'PASS 重复抓取同一页：不重复入库，提示已在列表中' : 'FAIL 重复抓取提示不符');
+process.exit(okOrder && okCount && okTag && okAgain ? 0 : 1);

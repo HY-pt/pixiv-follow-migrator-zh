@@ -136,7 +136,6 @@
         if (!token) { flash('未获取到 CSRF 令牌。请先在页面上手动关注一位用户，然后重试。', '#ef4444'); return; }
 
         const limitVal = parseInt($('pfm-limit').value, 10);
-        const defaultRestrict = $('pfm-restrict').value === '1' ? '1' : '0';
         const baseDelay = Math.max(200, parseInt($('pfm-delay').value, 10) || 1200);
         const jitterMax = Math.max(1, Math.min(10, parseFloat($('pfm-jitter').value) || 3));
         // 长休眠：每处理 batchN 个就休息 restSec 秒，模拟人类节奏（PBD 的「慢速模式」思路）
@@ -175,7 +174,7 @@
         const orderMode = ($('pfm-order') && $('pfm-order').value) || 'reverse';
         const ordered = orderMode === 'reverse' ? pending.slice().reverse() : pending;
         const toFollow = (limitVal > 0) ? ordered.slice(0, limitVal) : ordered;
-        const jobs = toFollow.map(u => ({ id: u.id, name: u.name, restrict: u.restrict === '1' ? '1' : defaultRestrict }));
+        const jobs = toFollow.map(u => ({ id: u.id, name: u.name, restrict: u.restrict === '1' ? '1' : '0' }));
         const pubN = jobs.filter(j => j.restrict === '0').length;
         const privN = jobs.length - pubN;
 

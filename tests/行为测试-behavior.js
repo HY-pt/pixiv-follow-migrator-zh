@@ -253,7 +253,6 @@ const ok = (label, cond, detail) => results.push({ label, pass: !!cond, detail }
       { id: '200002', name: '私密D', restrict: '1' },
     ];
     setList(mixed);
-    qs('#pfm-restrict').value = '0';   // 全局默认是公开，但带标记的应按自己走
     click('pfm-paste');
     const t0 = Date.now();
     while (Date.now() - t0 < 30000 && st.followed.length < 4) await wait(60);

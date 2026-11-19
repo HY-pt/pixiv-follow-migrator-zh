@@ -1,5 +1,6 @@
     // ── 1. 抓取当前页（DOM） ───────────────────────────────────────────────────
-    // 局限说明：DOM 里读不到「公开/私密」，也读不到跨页的全局顺序。
+    // 局限说明：DOM 里读不到跨页的全局顺序；可见性按当前标签页判断
+    //（私密关注页是 ?rest=hide，公开页没有该参数），不需要手动切换。
     // 顺序靠「追加」保证：pixiv 关注页是 1→N 由新到旧，从第 1 页开始逐页抓，
     // 每页内部按 DOM 顺序 push，拼起来就是完整的「新→旧」顺序。
     $('pfm-scrape').addEventListener('click', () => {
@@ -7,7 +8,11 @@
       const existing = loadList();
       const existingIds = new Set(existing.map(u => String(u.id)));
       const myId = getCurrentUserId();
-      const defaultRestrict = $('pfm-restrict').value === '1' ? '1' : '0';
+      // 私密关注页 URL 带 rest=hide；其余一律按公开
+      let tabRestrict = '0';
+      try {
+        if (location.search.indexOf('rest=hide') >= 0) tabRestrict = '1';
+      } catch (_) {}
       const found = [];
       const foundIds = new Set();
 
@@ -34,7 +39,7 @@
         }
         if (!n) return;
         foundIds.add(id);
-        found.push({ id: id, name: n, restrict: defaultRestrict });
+        found.push({ id: id, name: n, restrict: tabRestrict });
       });
 
       if (!found.length) return flash('未在页面中找到用户链接，请确认当前位于关注列表页面。', '#ef4444');
@@ -48,8 +53,12 @@
       const c = countByRestrict(saved);
       const where = pageNo !== null ? `第 ${pageNo} 页` : `第 ${seq} 次抓取`;
 
-      flash(`${where}：本页新增 ${added} 位，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
-            `列表顺序按逐页追加拼接，请从第 1 页开始依次抓取；本页用户按上方「本页标记」归类。`, '#10b981');
+      const head = added > 0
+        ? `${where}：新增 ${added} 位`
+        : `${where}：本页 ${found.length} 位均已在列表中`;
+      const tip = added > 0 ? '顺序按逐页追加拼接，请从第 1 页开始依次抓取。' : '';
+      flash(`${head}，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
+            `本页按「${tabRestrict === '1' ? '私密' : '公开'}」归类${tip ? '；' + tip : ''}`, '#10b981');
     });
 
     // ── 2. 通过 API 抓取（分页到底 + 断点续抓 + 公开/私密分开入库） ─────────────

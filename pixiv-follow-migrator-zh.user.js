@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Pixiv Follow Migrator 中文增强版
 // @namespace https://github.com/HY-pt/pixiv-follow-migrator-zh
-// @version 3.7.0
+// @version 3.7.1
 // @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。界面由本仓库自行汉化（上游为英文界面）并修复缺陷。
 // @author HY-pt
 // @license MIT
@@ -175,10 +175,6 @@
 
     .pfm-methods-desc { font-size: 11px; color: ${sub}; margin-bottom: 10px; text-align: center; }
     .pfm-methods { display: flex; flex-direction: column; gap: 8px; }
-    .pfm-scrape-tag { display: flex; align-items: center; justify-content: center; gap: 6px;
-      margin-top: 2px; font-size: 11px; color: ${sub}; }
-    .pfm-tag-select { width: auto; padding: 3px 8px; border-radius: 6px; font-size: 11px;
-      border: 1px solid ${border2}; background: ${bg}; color: ${text}; cursor: pointer; }
 
     .pfm-btn {
       width: 100%; padding: 8px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
@@ -482,7 +478,7 @@
     panel.id = 'pfm';
     panel.innerHTML = `
       <div id="pfm-header">
-        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.7.0 中文</span></div>
+        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.7.1 中文</span></div>
         <div id="pfm-hbtns">
           <button id="pfm-min" class="pfm-winbtn" title="最小化到悬浮图标" aria-label="最小化"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2.2" y="7.4" width="7" height="1.8" rx=".5" fill="currentColor"/></svg></button>
         </div>
@@ -499,12 +495,6 @@
               <button class="pfm-btn pfm-btn-outline" id="pfm-fetch">自动抓取全部</button>
               <div class="pfm-or-divider">或</div>
               <button class="pfm-btn pfm-btn-outline" id="pfm-scrape">仅抓取当前页</button>
-              <div class="pfm-scrape-tag">本页标记为
-                <select id="pfm-restrict" class="pfm-tag-select">
-                  <option value="0">公开</option>
-                  <option value="1">私密</option>
-                </select>
-              </div>
             </div>
           </div>
         </div>
@@ -687,7 +677,8 @@
     // 「关闭」已并入「最小化」，不再单独存在
 
     // ── 1. 抓取当前页（DOM） ───────────────────────────────────────────────────
-    // 局限说明：DOM 里读不到「公开/私密」，也读不到跨页的全局顺序。
+    // 局限说明：DOM 里读不到跨页的全局顺序；可见性按当前标签页判断
+    //（私密关注页是 ?rest=hide，公开页没有该参数），不需要手动切换。
     // 顺序靠「追加」保证：pixiv 关注页是 1→N 由新到旧，从第 1 页开始逐页抓，
     // 每页内部按 DOM 顺序 push，拼起来就是完整的「新→旧」顺序。
     $('pfm-scrape').addEventListener('click', () => {
@@ -695,7 +686,11 @@
       const existing = loadList();
       const existingIds = new Set(existing.map(u => String(u.id)));
       const myId = getCurrentUserId();
-      const defaultRestrict = $('pfm-restrict').value === '1' ? '1' : '0';
+      // 私密关注页 URL 带 rest=hide；其余一律按公开
+      let tabRestrict = '0';
+      try {
+        if (location.search.indexOf('rest=hide') >= 0) tabRestrict = '1';
+      } catch (_) {}
       const found = [];
       const foundIds = new Set();
 
@@ -722,7 +717,7 @@
         }
         if (!n) return;
         foundIds.add(id);
-        found.push({ id: id, name: n, restrict: defaultRestrict });
+        found.push({ id: id, name: n, restrict: tabRestrict });
       });
 
       if (!found.length) return flash('未在页面中找到用户链接，请确认当前位于关注列表页面。', '#ef4444');
@@ -736,8 +731,12 @@
       const c = countByRestrict(saved);
       const where = pageNo !== null ? `第 ${pageNo} 页` : `第 ${seq} 次抓取`;
 
-      flash(`${where}：本页新增 ${added} 位，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
-            `列表顺序按逐页追加拼接，请从第 1 页开始依次抓取；本页用户按上方「本页标记」归类。`, '#10b981');
+      const head = added > 0
+        ? `${where}：新增 ${added} 位`
+        : `${where}：本页 ${found.length} 位均已在列表中`;
+      const tip = added > 0 ? '顺序按逐页追加拼接，请从第 1 页开始依次抓取。' : '';
+      flash(`${head}，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
+            `本页按「${tabRestrict === '1' ? '私密' : '公开'}」归类${tip ? '；' + tip : ''}`, '#10b981');
     });
 
     // ── 2. 通过 API 抓取（分页到底 + 断点续抓 + 公开/私密分开入库） ─────────────
@@ -1073,7 +1072,6 @@
         if (!token) { flash('未获取到 CSRF 令牌。请先在页面上手动关注一位用户，然后重试。', '#ef4444'); return; }
 
         const limitVal = parseInt($('pfm-limit').value, 10);
-        const defaultRestrict = $('pfm-restrict').value === '1' ? '1' : '0';
         const baseDelay = Math.max(200, parseInt($('pfm-delay').value, 10) || 1200);
         const jitterMax = Math.max(1, Math.min(10, parseFloat($('pfm-jitter').value) || 3));
         // 长休眠：每处理 batchN 个就休息 restSec 秒，模拟人类节奏（PBD 的「慢速模式」思路）
@@ -1112,7 +1110,7 @@
         const orderMode = ($('pfm-order') && $('pfm-order').value) || 'reverse';
         const ordered = orderMode === 'reverse' ? pending.slice().reverse() : pending;
         const toFollow = (limitVal > 0) ? ordered.slice(0, limitVal) : ordered;
-        const jobs = toFollow.map(u => ({ id: u.id, name: u.name, restrict: u.restrict === '1' ? '1' : defaultRestrict }));
+        const jobs = toFollow.map(u => ({ id: u.id, name: u.name, restrict: u.restrict === '1' ? '1' : '0' }));
         const pubN = jobs.filter(j => j.restrict === '0').length;
         const privN = jobs.length - pubN;
 
