@@ -143,12 +143,16 @@
     #pfm-status { position: sticky; top: 0; z-index: 6; margin: 0 -12px; border-radius: 0;
       border-left: 0; border-right: 0; box-shadow: 0 2px 8px rgba(0,0,0,.10); }
     /* 高级设置折叠：默认收起，把 8 行压到 4 行。 */
-    #pfm-adv { border: 1px dashed ${border2}; border-radius: 10px; padding: 0 10px 10px; }
-    #pfm-adv > summary { cursor: pointer; padding: 8px 2px; font-size: 11px; font-weight: 600; color: ${sub};
+    /* 折叠区：实线边框 + 浅底 + 主文字色，确保一眼看出可点开 */
+    #pfm-adv { border: 1px solid ${border2}; border-radius: 10px; padding: 0 12px 12px;
+      background: ${cardHover}; }
+    #pfm-adv > summary { cursor: pointer; padding: 10px 2px; font-size: 12px; font-weight: 700;
+      color: ${text};
       list-style: none; display: flex; justify-content: space-between; align-items: center; }
     #pfm-adv > summary::-webkit-details-marker { display: none; }
-    #pfm-adv > summary::after { content: '▾'; transition: transform .15s; }
-    #pfm-adv[open] > summary::after { transform: rotate(180deg); }
+    #pfm-adv > summary::after { content: '展开 ▾'; font-size: 11px; font-weight: 600;
+      color: ${accent}; white-space: nowrap; }
+    #pfm-adv[open] > summary::after { content: '收起 ▴'; }
     #pfm-adv .pfm-settings-grid { margin-bottom: 0; }
     /* 关键：作者样式 display:grid 优先级高于浏览器默认的 details 折叠规则，
        不显式隐藏的话 <details> 收起时内容照样渲染（高度根本降不下来）。 */
@@ -516,7 +520,7 @@
               </div>
             </div>
             <details id="pfm-adv">
-              <summary>高级设置（长休眠 · 关注顺序 · 撞墙处理）</summary>
+              <summary>高级设置：长休眠 · 顺序 · 撞墙</summary>
               <div class="pfm-settings-grid" style="margin-top:6px;">
                 <div class="pfm-setting-item">
                   <label>每 N 个长休眠</label>
@@ -580,7 +584,7 @@
           </div>
         </div>
 
-        <div class="pfm-footer-credit">原作者：Misery</div>
+        <div class="pfm-footer-credit">作者 HY-pt · 上游 godlessX v3.0 (MIT)</div>
       </div>
     `;
     document.body.appendChild(panel);

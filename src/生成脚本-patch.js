@@ -103,7 +103,8 @@ const textPairs = [
   ['💾 Export list', '💾 导出列表'],
   ['📂 Import list', '📂 导入列表'],
   ['🗑 Clear list', '🗑 清空列表'],
-  ['Made by Misery', '原作者：Misery'],
+  // 署名：本分支作者 + 上游来源（MIT 要求保留上游署名）
+  ['Made by Misery', '作者 HY-pt · 上游 godlessX v3.0 (MIT)'],
 
   ['✅ ${added} users found & saved on this page', '✅ 本页找到并保存 ${added} 位用户'],
   ['❌ Go to a user profile first.', '❌ 请先登录 pixiv 并打开任意用户主页。'],
@@ -146,12 +147,16 @@ const codePairs = [
    '    #pfm-status { position: sticky; top: 0; z-index: 6; margin: 0 -12px; border-radius: 0;\n' +
    '      border-left: 0; border-right: 0; box-shadow: 0 2px 8px rgba(0,0,0,.10); }\n' +
    '    /* 高级设置折叠：默认收起，把 8 行压到 4 行。 */\n' +
-   '    #pfm-adv { border: 1px dashed ${border2}; border-radius: 10px; padding: 0 10px 10px; }\n' +
-   '    #pfm-adv > summary { cursor: pointer; padding: 8px 2px; font-size: 11px; font-weight: 600; color: ${sub};\n' +
+   '    /* 折叠区：实线边框 + 浅底 + 主文字色，确保一眼看出可点开 */\n' +
+   '    #pfm-adv { border: 1px solid ${border2}; border-radius: 10px; padding: 0 12px 12px;\n' +
+   '      background: ${cardHover}; }\n' +
+   '    #pfm-adv > summary { cursor: pointer; padding: 10px 2px; font-size: 12px; font-weight: 700;\n' +
+   '      color: ${text};\n' +
    '      list-style: none; display: flex; justify-content: space-between; align-items: center; }\n' +
    '    #pfm-adv > summary::-webkit-details-marker { display: none; }\n' +
-   '    #pfm-adv > summary::after { content: \'▾\'; transition: transform .15s; }\n' +
-   '    #pfm-adv[open] > summary::after { transform: rotate(180deg); }\n' +
+   '    #pfm-adv > summary::after { content: \'展开 ▾\'; font-size: 11px; font-weight: 600;\n' +
+   '      color: ${accent}; white-space: nowrap; }\n' +
+   '    #pfm-adv[open] > summary::after { content: \'收起 ▴\'; }\n' +
    '    #pfm-adv .pfm-settings-grid { margin-bottom: 0; }\n' +
    '    /* 关键：作者样式 display:grid 优先级高于浏览器默认的 details 折叠规则，\n' +
    '       不显式隐藏的话 <details> 收起时内容照样渲染（高度根本降不下来）。 */\n' +
@@ -191,7 +196,7 @@ const codePairs = [
   // 4.35 高级设置折叠 + 四个主按钮
   ['<button class="pfm-btn pfm-btn-primary" id="pfm-paste">🚀 开始自动关注</button>',
    '<details id="pfm-adv">\n' +
-   '              <summary>高级设置（长休眠 · 关注顺序 · 撞墙处理）</summary>\n' +
+   '              <summary>高级设置：长休眠 · 顺序 · 撞墙</summary>\n' +
    '              <div class="pfm-settings-grid" style="margin-top:6px;">\n' +
    '                <div class="pfm-setting-item">\n                  <label>每 N 个长休眠</label>\n' +
    '                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="0 = 关闭">\n' +
