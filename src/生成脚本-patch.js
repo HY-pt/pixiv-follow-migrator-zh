@@ -64,8 +64,9 @@ const commentPairs = [
 const textPairs = [
   ['🔁 Pixiv Migrator <span class="pfm-title-version">v3.0</span>',
    '🔁 Pixiv 关注迁移 <span class="pfm-title-version">v3.5.0 中文</span>'],
-  ['title="Minimize"', 'title="最小化"'],
-  ['title="Close"', 'title="关闭"'],
+  // 合并「最小化」与「关闭」：只保留一个按钮
+  ["          <button id=\"pfm-min\" title=\"Minimize\">—</button>\n          <button id=\"pfm-x\" title=\"Close\">✕</button>",
+   "          <button id=\"pfm-min\" class=\"pfm-winbtn\" title=\"最小化到悬浮图标\" aria-label=\"最小化\"><svg viewBox=\"0 0 12 12\" width=\"12\" height=\"12\" aria-hidden=\"true\"><rect x=\"2.2\" y=\"7.4\" width=\"7\" height=\"1.8\" rx=\".5\" fill=\"currentColor\"/></svg></button>"],
   ["'Open Pixiv Migrator'", "'打开 Pixiv 关注迁移'"],
   ['>Ready to migrate.<', '>准备就绪。<'],
 
@@ -127,6 +128,18 @@ const textPairs = [
 
 // ── 4. 结构与代码改动 ───────────────────────────────────────────────────────
 const codePairs = [
+  // ── 合并最小化与关闭：原版两个按钮功能重复，都只是隐藏面板 + 显示图标 ──
+  ["    $('pfm-min').addEventListener('click', () => {\n      const b = $('pfm-body');\n      const minimized = b.style.display === 'none';\n      b.style.display = minimized ? 'flex' : 'none';\n      $('pfm-min').textContent = minimized ? '—' : '▢';\n    });",
+   "    // 最小化：整块面板收进右下角的圆形图标（唯一的最小化入口）\n    // 注：原版把「最小化」和「关闭」做成两个按钮，但两者都只是\"隐藏面板 + 显示图标\"，\n    //     属重复实现，故合并为一个。双击标题栏同样可收起。\n    $('pfm-min').addEventListener('click', () => {\n      panel.style.display = 'none';\n      summon.style.display = 'flex';\n    });\n    $('pfm-header').addEventListener('dblclick', e => {\n      if (e.target.closest('button')) return;\n      panel.style.display = 'none';\n      summon.style.display = 'flex';\n    });"],
+
+  // ── 关闭按钮的 handler 整段移除（功能已并入最小化）──
+  ["    $('pfm-x').addEventListener('click', () => {\n      panel.style.display = 'none';\n      summon.style.display = 'flex';\n    });",
+   "    // 「关闭」已并入「最小化」，不再单独存在"],
+
+  // ── 悬浮图标改为内联 SVG ──
+  ["    summon.textContent = '🔁';",
+   "    // 悬浮图标：P + 双向箭头（内联 SVG，不依赖 emoji 字体）\n    summon.innerHTML =\n      '<svg viewBox=\"0 0 64 64\" width=\"100%\" height=\"100%\" aria-hidden=\"true\">' +\n      '<circle cx=\"32\" cy=\"32\" r=\"31\" fill=\"#0A84FF\"/>' +\n      '<text x=\"32\" y=\"42\" font-family=\"Georgia,Times New Roman,serif\" font-size=\"28\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">P</text>' +\n      '<path d=\"M40 7.5 A26 26 0 0 1 56.5 24\" fill=\"none\" stroke=\"#fff\" stroke-width=\"4\" stroke-linecap=\"round\"/>' +\n      '<path d=\"M56.5 24 l-7.6 -1.6 l1.8 -7.6 z\" fill=\"#fff\"/>' +\n      '<path d=\"M24 56.5 A26 26 0 0 1 7.5 40\" fill=\"none\" stroke=\"#fff\" stroke-width=\"4\" stroke-linecap=\"round\"/>' +\n      '<path d=\"M7.5 40 l7.6 1.6 l-1.8 7.6 z\" fill=\"#fff\"/>' +\n      '</svg>';"],
+
   // 4.1 面板高度上限：窗口不最大化时标题栏不再被顶出视口
   ['      position: fixed; bottom: 20px; right: 20px; z-index: 999999;\n' +
    '      width: 320px; background: ${bg}; border: 1px solid ${border};',

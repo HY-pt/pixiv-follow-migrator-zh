@@ -474,8 +474,7 @@
       <div id="pfm-header">
         <div class="pfm-title">🔁 Pixiv 关注迁移 <span class="pfm-title-version">v3.5.0 中文</span></div>
         <div id="pfm-hbtns">
-          <button id="pfm-min" title="最小化">—</button>
-          <button id="pfm-x" title="关闭">✕</button>
+          <button id="pfm-min" class="pfm-winbtn" title="最小化到悬浮图标" aria-label="最小化"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2.2" y="7.4" width="7" height="1.8" rx=".5" fill="currentColor"/></svg></button>
         </div>
       </div>
 
@@ -646,17 +645,32 @@
     clampPanel();
 
     // ── 最小化 / 关闭 ───────────────────────────────────────────────────────────
+    // 最小化：整块面板收进右下角的圆形图标（唯一的最小化入口）
+    // 注：原版把「最小化」和「关闭」做成两个按钮，但两者都只是"隐藏面板 + 显示图标"，
+    //     属重复实现，故合并为一个。双击标题栏同样可收起。
     $('pfm-min').addEventListener('click', () => {
-      const b = $('pfm-body');
-      const minimized = b.style.display === 'none';
-      b.style.display = minimized ? 'flex' : 'none';
-      $('pfm-min').textContent = minimized ? '—' : '▢';
+      panel.style.display = 'none';
+      summon.style.display = 'flex';
+    });
+    $('pfm-header').addEventListener('dblclick', e => {
+      if (e.target.closest('button')) return;
+      panel.style.display = 'none';
+      summon.style.display = 'flex';
     });
 
     const summon = document.createElement('div');
     summon.id = 'pfm-summon';
     summon.title = '打开 Pixiv 关注迁移';
-    summon.textContent = '🔁';
+    // 悬浮图标：P + 双向箭头（内联 SVG，不依赖 emoji 字体）
+    summon.innerHTML =
+      '<svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true">' +
+      '<circle cx="32" cy="32" r="31" fill="#0A84FF"/>' +
+      '<text x="32" y="42" font-family="Georgia,Times New Roman,serif" font-size="28" font-weight="700" fill="#fff" text-anchor="middle">P</text>' +
+      '<path d="M40 7.5 A26 26 0 0 1 56.5 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>' +
+      '<path d="M56.5 24 l-7.6 -1.6 l1.8 -7.6 z" fill="#fff"/>' +
+      '<path d="M24 56.5 A26 26 0 0 1 7.5 40" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>' +
+      '<path d="M7.5 40 l7.6 1.6 l-1.8 7.6 z" fill="#fff"/>' +
+      '</svg>';
     summon.style.cssText = `
       display: none; position: fixed; bottom: 20px; right: 20px; z-index: 999999;
       width: 44px; height: 44px; border-radius: 50%;
@@ -669,10 +683,7 @@
     summon.addEventListener('click', () => { panel.style.display = ''; summon.style.display = 'none'; });
     document.body.appendChild(summon);
 
-    $('pfm-x').addEventListener('click', () => {
-      panel.style.display = 'none';
-      summon.style.display = 'flex';
-    });
+    // 「关闭」已并入「最小化」，不再单独存在
 
     // ── 1. 抓取当前页（DOM） ───────────────────────────────────────────────────
     // 局限说明：DOM 里读不到「公开/私密」，也读不到跨页的全局顺序。
