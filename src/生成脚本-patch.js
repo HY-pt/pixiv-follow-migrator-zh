@@ -8,6 +8,13 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'upstream', 'pixiv-follow-migrator-v3.0.user.js');
 const OUT = path.join(ROOT, 'pixiv-follow-migrator-zh.user.js');
+
+// ── 0. 应用图标（1254² 原图 → 96px PNG，构建时转 base64 data URI）──────────────
+// 标题栏与悬浮图标共用同一份图标。内嵌为 data URI 后 user.js 仍是单文件：
+// 不依赖外部图片，也不依赖 emoji 字体（各系统对 🔁 的渲染差异很大）。
+const ICON_URI = 'data:image/png;base64,' +
+  fs.readFileSync(path.join(ROOT, 'assets', 'icon-96.png')).toString('base64');
+
 let s = fs.readFileSync(SRC, 'utf8');
 const before = s;
 const report = [];
@@ -62,8 +69,12 @@ const commentPairs = [
 
 // ── 3. 界面文案 ─────────────────────────────────────────────────────────────
 const textPairs = [
+  // 标题栏图标：与悬浮图标同一张图，18px 与 14px 粗体标题视觉齐平
+  ['.pfm-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }',
+   '.pfm-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }\n' +
+   '    .pfm-title-icon { width: 18px; height: 18px; display: block; flex: 0 0 auto; }'],
   ['🔁 Pixiv Migrator <span class="pfm-title-version">v3.0</span>',
-   '🔁 Pixiv 关注迁移 <span class="pfm-title-version">v3.5.0 中文</span>'],
+   '<img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.5.0 中文</span>'],
   // 合并「最小化」与「关闭」：只保留一个按钮
   ["          <button id=\"pfm-min\" title=\"Minimize\">—</button>\n          <button id=\"pfm-x\" title=\"Close\">✕</button>",
    "          <button id=\"pfm-min\" class=\"pfm-winbtn\" title=\"最小化到悬浮图标\" aria-label=\"最小化\"><svg viewBox=\"0 0 12 12\" width=\"12\" height=\"12\" aria-hidden=\"true\"><rect x=\"2.2\" y=\"7.4\" width=\"7\" height=\"1.8\" rx=\".5\" fill=\"currentColor\"/></svg></button>"],
@@ -128,6 +139,10 @@ const textPairs = [
 
 // ── 4. 结构与代码改动 ───────────────────────────────────────────────────────
 const codePairs = [
+  // ── 应用图标常量：标题栏与悬浮图标共用，base64 只展开一份 ──
+  ["  function initUI() {\n    const theme = getPixivTheme();",
+   "  function initUI() {\n    // 应用图标：96px PNG → base64 data URI，user.js 单文件自包含\n    const PFM_ICON_URI = '" + ICON_URI + "';\n    const theme = getPixivTheme();"],
+
   // ── 合并最小化与关闭：原版两个按钮功能重复，都只是隐藏面板 + 显示图标 ──
   ["    $('pfm-min').addEventListener('click', () => {\n      const b = $('pfm-body');\n      const minimized = b.style.display === 'none';\n      b.style.display = minimized ? 'flex' : 'none';\n      $('pfm-min').textContent = minimized ? '—' : '▢';\n    });",
    "    // 最小化：整块面板收进右下角的圆形图标（唯一的最小化入口）\n    // 注：原版把「最小化」和「关闭」做成两个按钮，但两者都只是\"隐藏面板 + 显示图标\"，\n    //     属重复实现，故合并为一个。双击标题栏同样可收起。\n    $('pfm-min').addEventListener('click', () => {\n      panel.style.display = 'none';\n      summon.style.display = 'flex';\n    });\n    $('pfm-header').addEventListener('dblclick', e => {\n      if (e.target.closest('button')) return;\n      panel.style.display = 'none';\n      summon.style.display = 'flex';\n    });"],
@@ -136,9 +151,9 @@ const codePairs = [
   ["    $('pfm-x').addEventListener('click', () => {\n      panel.style.display = 'none';\n      summon.style.display = 'flex';\n    });",
    "    // 「关闭」已并入「最小化」，不再单独存在"],
 
-  // ── 悬浮图标改为内联 SVG ──
+  // ── 悬浮图标改为应用图标（96px PNG 的 base64 data URI）──
   ["    summon.textContent = '🔁';",
-   "    // 悬浮图标：P + 双向箭头（内联 SVG，不依赖 emoji 字体）\n    summon.innerHTML =\n      '<svg viewBox=\"0 0 64 64\" width=\"100%\" height=\"100%\" aria-hidden=\"true\">' +\n      '<circle cx=\"32\" cy=\"32\" r=\"31\" fill=\"#0A84FF\"/>' +\n      '<text x=\"32\" y=\"42\" font-family=\"Georgia,Times New Roman,serif\" font-size=\"28\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">P</text>' +\n      '<path d=\"M40 7.5 A26 26 0 0 1 56.5 24\" fill=\"none\" stroke=\"#fff\" stroke-width=\"4\" stroke-linecap=\"round\"/>' +\n      '<path d=\"M56.5 24 l-7.6 -1.6 l1.8 -7.6 z\" fill=\"#fff\"/>' +\n      '<path d=\"M24 56.5 A26 26 0 0 1 7.5 40\" fill=\"none\" stroke=\"#fff\" stroke-width=\"4\" stroke-linecap=\"round\"/>' +\n      '<path d=\"M7.5 40 l7.6 1.6 l-1.8 7.6 z\" fill=\"#fff\"/>' +\n      '</svg>';"],
+   "    // 悬浮图标：与应用图标同一张图（96px PNG 内嵌，不依赖 emoji 字体）\n    summon.innerHTML = '<img class=\"pfm-summon-icon\" src=\"' + PFM_ICON_URI + '\" width=\"96\" height=\"96\" alt=\"\" style=\"width:100%;height:100%;display:block;object-fit:contain\">';"],
 
   // 4.1 面板高度上限：窗口不最大化时标题栏不再被顶出视口
   ['      position: fixed; bottom: 20px; right: 20px; z-index: 999999;\n' +
