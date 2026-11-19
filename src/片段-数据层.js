@@ -44,7 +44,7 @@
 
   // 执行锁：抓取 / 关注 / 校验 同一时间只允许跑一个，防止重复执行把状态搅乱
   let pfmTaskLock = null;
-  const PFM_LOCK_LABEL = { scrape: '抓取当前页', fetch: '自动抓取', follow: '自动关注', verify: '校验列表' };
+  const PFM_LOCK_LABEL = { scrape: '抓取当前页', fetch: '自动抓取', follow: '自动关注', verify: '校验关注状态' };
 
   // ── 校验快照：校验只产出报告，销毁必须单独确认；销毁前留一份可撤销的备份 ──────
   const PFM_VERIFY_KEY = 'pfm_verify_report';

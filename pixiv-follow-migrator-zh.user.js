@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Pixiv Follow Migrator 中文增强版
 // @namespace https://github.com/HY-pt/pixiv-follow-migrator-zh
-// @version 3.5.2
+// @version 3.6.0
 // @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。界面由本仓库自行汉化（上游为英文界面）并修复缺陷。
 // @author HY-pt
 // @license MIT
@@ -430,7 +430,7 @@
 
   // 执行锁：抓取 / 关注 / 校验 同一时间只允许跑一个，防止重复执行把状态搅乱
   let pfmTaskLock = null;
-  const PFM_LOCK_LABEL = { scrape: '抓取当前页', fetch: '自动抓取', follow: '自动关注', verify: '校验列表' };
+  const PFM_LOCK_LABEL = { scrape: '抓取当前页', fetch: '自动抓取', follow: '自动关注', verify: '校验关注状态' };
 
   // ── 校验快照：校验只产出报告，销毁必须单独确认；销毁前留一份可撤销的备份 ──────
   const PFM_VERIFY_KEY = 'pfm_verify_report';
@@ -478,7 +478,7 @@
     panel.id = 'pfm';
     panel.innerHTML = `
       <div id="pfm-header">
-        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.5.1 中文</span></div>
+        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.6.0 中文</span></div>
         <div id="pfm-hbtns">
           <button id="pfm-min" class="pfm-winbtn" title="最小化到悬浮图标" aria-label="最小化"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2.2" y="7.4" width="7" height="1.8" rx=".5" fill="currentColor"/></svg></button>
         </div>
@@ -490,11 +490,11 @@
         <div class="pfm-card">
           <div class="pfm-card-header">1. 获取关注列表</div>
           <div class="pfm-card-body">
-            <div class="pfm-methods-desc">提示：抓取的是「当前登录账号」的关注列表。</div>
+            <div class="pfm-methods-desc">抓取对象为当前登录账号的关注列表。</div>
             <div class="pfm-methods">
-              <button class="pfm-btn pfm-btn-outline" id="pfm-fetch">⚡ 自动抓取全部（快速）</button>
+              <button class="pfm-btn pfm-btn-outline" id="pfm-fetch">⚡ 自动抓取全部</button>
               <div class="pfm-or-divider">或</div>
-              <button class="pfm-btn pfm-btn-outline" id="pfm-scrape">📄 抓取当前页（较慢）</button>
+              <button class="pfm-btn pfm-btn-outline" id="pfm-scrape">📄 仅抓取当前页</button>
             </div>
           </div>
         </div>
@@ -517,7 +517,7 @@
               </div>
               <div class="pfm-setting-item">
                 <label>导入模式</label>
-                <select id="pfm-import-mode" class="pfm-input" title="全部=按文件里的标记；公开/私密=整份并入对应的关注表（增量合并，同 ID 覆盖可见性）">
+                <select id="pfm-import-mode" class="pfm-input" title="全部：按文件内的标记归位；公开 / 私密：整份并入对应关注表（增量合并，同 ID 覆盖可见性）">
                   <option value="auto">全部</option>
                   <option value="pub">公开</option>
                   <option value="priv">私密</option>
@@ -525,11 +525,11 @@
               </div>
             </div>
             <details id="pfm-adv">
-              <summary>高级设置：长休眠 · 顺序 · 撞墙</summary>
+              <summary>高级设置：长休眠 · 关注顺序 · 限流处理</summary>
               <div class="pfm-settings-grid" style="margin-top:6px;">
                 <div class="pfm-setting-item">
-                  <label>每 N 个长休眠</label>
-                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="0 = 关闭">
+                  <label>长休眠间隔</label>
+                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="每关注 N 位后长休眠一次；0 表示不启用">
                 </div>
                 <div class="pfm-setting-item">
                   <label>长休眠时长（秒）</label>
@@ -539,30 +539,30 @@
                   <label>关注顺序</label>
                   <select id="pfm-order" class="pfm-input">
                     <option value="reverse">还原原账号顺序（推荐）</option>
-                    <option value="keep">按列表顺序（会整体颠倒）</option>
+                    <option value="keep">按列表顺序（关注顺序会反转）</option>
                   </select>
                 </div>
                 <div class="pfm-setting-item pfm-settings-row">
-                  <label>抓取页标记（DOM 抓取用）</label>
+                  <label>当前页可见性</label>
                   <select id="pfm-restrict" class="pfm-input">
                     <option value="0">公开</option>
                     <option value="1">私密</option>
                   </select>
                 </div>
                 <div class="pfm-setting-item pfm-settings-row">
-                  <label>撞墙处理</label>
+                  <label>限流处理</label>
                   <select id="pfm-wall" class="pfm-input">
-                    <option value="pause">暂停等待后自动续跑（推荐）</option>
+                    <option value="pause">暂停后自动继续（推荐）</option>
                     <option value="stop">立即停止，保留进度</option>
-                    <option value="refollow">取消关注再关注回来（会通知对方）</option>
+                    <option value="refollow">取消关注后重新关注（对方会收到通知）</option>
                   </select>
                 </div>
               </div>
             </details>
             <button class="pfm-btn pfm-btn-primary" id="pfm-paste" style="margin-top:8px;">🚀 开始自动关注</button>
-            <button class="pfm-btn pfm-btn-outline" id="pfm-verify" style="margin-top:6px;">🔍 校验并生成报告（不改列表）</button>
-            <button class="pfm-btn pfm-btn-outline" id="pfm-prune" style="margin-top:5px;">🗑 执行清理（移除已关注）</button>
-            <button class="pfm-btn pfm-btn-outline" id="pfm-undo" style="margin-top:5px;">↩️ 撤销清理</button>
+            <button class="pfm-btn pfm-btn-outline" id="pfm-verify" style="margin-top:6px;" title="只比对关注状态，不改动列表">🔍 校验关注状态</button>
+            <button class="pfm-btn pfm-btn-outline" id="pfm-prune" style="margin-top:5px;" title="从本地列表移除已确认在关注的用户，移除前自动备份">🗑 移除已关注记录</button>
+            <button class="pfm-btn pfm-btn-outline" id="pfm-undo" style="margin-top:5px;">↩️ 撤销移除</button>
 
             <div id="pfm-prog">
               <div id="pfm-track"><div id="pfm-bar"></div></div>
@@ -589,7 +589,7 @@
           </div>
         </div>
 
-        <a class="pfm-footer-credit" href="https://github.com/HY-pt/pixiv-follow-migrator-zh" target="_blank" rel="noopener noreferrer" title="在 GitHub 打开本仓库（新标签页）">作者 HY-pt · 上游 godlessX v3.0 (MIT)</a>
+        <a class="pfm-footer-credit" href="https://github.com/HY-pt/pixiv-follow-migrator-zh" target="_blank" rel="noopener noreferrer" title="在 GitHub 打开本仓库">作者 HY-pt · 上游 godlessX v3.0 (MIT)</a>
       </div>
     `;
     document.body.appendChild(panel);
@@ -688,7 +688,7 @@
     // 顺序靠「追加」保证：pixiv 关注页是 1→N 由新到旧，从第 1 页开始逐页抓，
     // 每页内部按 DOM 顺序 push，拼起来就是完整的「新→旧」顺序。
     $('pfm-scrape').addEventListener('click', () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const existing = loadList();
       const existingIds = new Set(existing.map(u => String(u.id)));
       const myId = getCurrentUserId();
@@ -722,7 +722,7 @@
         found.push({ id: id, name: n, restrict: defaultRestrict });
       });
 
-      if (!found.length) return flash('❌ 本页没找到用户链接。请确认在「关注列表」页面上。', '#ef4444');
+      if (!found.length) return flash('❌ 未在页面中找到用户链接，请确认当前位于关注列表页面。', '#ef4444');
 
       let added = 0;
       for (const u of found) {
@@ -733,8 +733,8 @@
       const c = countByRestrict(saved);
       const where = pageNo !== null ? `第 ${pageNo} 页` : `第 ${seq} 次抓取`;
 
-      flash(`✅ ${where}：本页追加 ${added} 位（列表共 ${saved.length}，公开 ${c.pub} / 私密 ${c.priv}）。` +
-            `顺序靠逐页追加拼接 —— 请从第 1 页开始按顺序抓；本页可见性按「默认可见性」标记。`, '#10b981');
+      flash(`✅ ${where}：本页新增 ${added} 位，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
+            `列表顺序按逐页追加拼接，请从第 1 页开始依次抓取；本页用户按「当前页可见性」标记。`, '#10b981');
     });
 
     // ── 2. 通过 API 抓取（分页到底 + 断点续抓 + 公开/私密分开入库） ─────────────
@@ -779,13 +779,13 @@
             const res = await fetch(`https://www.pixiv.net/ajax/user/${userId}/following?offset=${offset}&limit=${PFM_PAGE}&rest=${rest}&lang=en`,
               { credentials: 'include', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }});
             if (res.status === 429 || res.status === 403) {
-              lastErr = 'HTTP ' + res.status + '（请求过快，被限流）';
+              lastErr = 'HTTP ' + res.status + '（请求过于频繁，触发限流）';
               await sleep(1200 * attempt);
               continue;
             }
             if (!res.ok) { lastErr = 'HTTP ' + res.status; await sleep(800 * attempt); continue; }
             const j = await res.json();
-            if (j && j.error) { lastErr = j.message || '接口返回 error'; await sleep(800 * attempt); continue; }
+            if (j && j.error) { lastErr = j.message || '接口返回错误'; await sleep(800 * attempt); continue; }
             json = j;
             break;
           } catch (e) {
@@ -793,7 +793,7 @@
             await sleep(800 * attempt);
           }
         }
-        if (!json || !json.body || !Array.isArray(json.body.users)) { reason = lastErr || '接口没有返回用户列表'; break; }
+        if (!json || !json.body || !Array.isArray(json.body.users)) { reason = lastErr || '接口未返回用户列表'; break; }
 
         if (total === null) total = Number(json.body.total) || null;
         const users = json.body.users;
@@ -804,7 +804,7 @@
         //      否则会像之前那样把私密关注整段判成 0/23 并清掉游标。
         if (!users.length) {
           if (offset === 0) {
-            reason = lastErr || '第一页就返回空（可能未登录、接口异常或权限不足）';
+            reason = lastErr || '首页即返回空数据（可能未登录、接口异常或权限不足）';
           } else if (total !== null && offset < total) {
             reason = 'TAIL_EMPTY';
           }
@@ -849,10 +849,10 @@
     }
 
     $('pfm-fetch').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       // 抓的是「当前登录账号」的关注列表 —— 迁移就是从自己账号搬到另一个账号，这里就该用登录身份
       const pageUserId = getCurrentUserId();
-      if (!pageUserId) return flash('❌ 请先登录 pixiv 并打开任意用户主页。', '#ef4444');
+      if (!pageUserId) return flash('❌ 请先登录 Pixiv 并打开任一用户主页。', '#ef4444');
 
       pfmTaskLock = 'fetch';
       setBusy(true);
@@ -860,16 +860,16 @@
       const resuming = cur.show > 0 || cur.hide > 0;
 
       try {
-        flash(resuming ? `⏳ 从上次的位置继续抓取（公开从第 ${cur.show + 1} 位、私密从第 ${cur.hide + 1} 位）…` : '⏳ 正在抓取公开关注…', '#3b82f6');
+        flash(resuming ? `⏳ 续抓上次进度（公开第 ${cur.show + 1} 位、私密第 ${cur.hide + 1} 位）…` : '⏳ 正在抓取公开关注…', '#3b82f6');
 
         const pub = await apiFetchSegment(pageUserId, 'show', cur.show, (n, t, off) => {
-          flash(`⏳ 公开关注已抓 ${n}${t ? '/' + t : ''}（offset ${off}）…`, '#3b82f6');
+          flash(`⏳ 抓取公开关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
         });
         flash('⏳ 正在抓取私密关注…', '#3b82f6');
         let priv = { ids: [], total: 0, reason: null, pages: 0, nextOffset: 0, done: true };
         try {
           priv = await apiFetchSegment(pageUserId, 'hide', cur.hide, (n, t, off) => {
-            flash(`⏳ 私密关注已抓 ${n}${t ? '/' + t : ''}（offset ${off}）…`, '#3b82f6');
+            flash(`⏳ 抓取私密关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
           });
         } catch (e) {
           // 私密抓取失败不能静默吞掉 —— 空 catch 会让状态栏显示「私密 0/23」，看着像本来就没数据
@@ -903,23 +903,23 @@
         let gapNote = '';
         if (allDone && (gapPub > 0 || gapPriv > 0)) {
           const parts = [];
-          if (gapPub > 0) parts.push(`公开缺 ${gapPub}`);
-          if (gapPriv > 0) parts.push(`私密缺 ${gapPriv}`);
-          gapNote = ` 另有 ${parts.join('、')} 位取不到 —— 这是已注销/被冻结的账号，pixiv 仍计入总数但接口不再返回，页面上同样看不到，属正常损耗。`;
+          if (gapPub > 0) parts.push(`公开缺 ${gapPub} 位`);
+          if (gapPriv > 0) parts.push(`私密缺 ${gapPriv} 位`);
+          gapNote = ` 其中 ${parts.join('、')} 位无法获取：账号已注销或被冻结，Pixiv 仍计入总数但不返回数据，属正常损耗。`;
         }
 
         if (allDone) {
-          flash(`✅ 抓取完成：${detail}。新增公开 ${addedPub}、私密 ${addedPriv}（列表共 ${saved.length} 位）。${gapNote}`, '#10b981');
+          flash(`✅ 抓取完成：${detail}。新增公开 ${addedPub} 位、私密 ${addedPriv} 位，列表共 ${saved.length} 位。${gapNote}`, '#10b981');
         } else {
           const why = reason ? `原因：${reason}。` : '';
           // 注意：这里的「第 N 位」是游标 offset，不是行号；offset 可能因深翻页不满额而推进很慢，
           // 所以同时把「已入库数量」和 total 一起报出来，避免用户看到「从第 1 位继续」这种费解数字。
           const pubGot = pub.ids.length, privGot = priv.ids.length;
           const nextShow = (pub.nextOffset || 0), nextHide = (priv.nextOffset || 0);
-          const nudge = `已保存进度：公开已取 ${pubGot}/${pub.total || '?'}、私密已取 ${privGot}/${priv.total || '?'}；` +
-            `再点一次会从 offset=${nextShow}（私密 offset=${nextHide}）继续，不会从头重来。` +
-            `若反复在同一 offset 停住，多半是服务端对该位置限制深翻页 —— 多点几次即可逐步推进。`;
-          flash(`⚠️ 未抓全：${detail}。${why}${nudge}`, '#f59e0b');
+          const nudge = `已保存进度：公开 ${pubGot}/${pub.total || '?'}、私密 ${privGot}/${priv.total || '?'}；` +
+            `再次点击将从 offset=${nextShow}（私密 offset=${nextHide}）继续。` +
+            `若持续在同一 offset 停止，通常是服务端限制了深翻页，多次重试可逐步推进。`;
+          flash(`⚠️ 抓取未完成：${detail}。${why}${nudge}`, '#f59e0b');
         }
       } catch (e) {
         flash(`❌ 出错：${e.message}`, '#ef4444');
@@ -968,16 +968,16 @@
 
     // ── 校验（只读）：比对目标账号已有收藏，产出报告，【绝不修改列表】 ──────────
     // 旧版在这里直接 saveList(remain)，一校验就永久删人，且没有中间态、无法撤销。
-    // 现在拆成两步：本函数只算差异；真正删除由「执行清理」按钮单独确认。
+    // 现在拆成两步：本函数只算差异；真正删除由「移除已关注记录」按钮单独确认。
     async function buildVerifyReport() {
       const before = loadList();
       if (!before.length) return { ok: false, why: '列表为空' };
       flash('⏳ 正在比对目标账号已有的关注…', '#3b82f6');
       const have = await fetchExistingFollowIds();
       // have === null 表示连自己的 UID 都取不到；空 Set 表示页面都失败 —— 都不足以下结论
-      if (!have) return { ok: false, why: '取不到当前账号信息（请确认已登录 pixiv）' };
+      if (!have) return { ok: false, why: '无法获取当前账号信息（请确认已登录 Pixiv）' };
       if (have.size === 0) {
-        return { ok: false, why: '目标账号的关注列表读回 0 条，可能未登录或被限流，已中止比对以免误删' };
+        return { ok: false, why: '目标账号关注列表返回 0 条，可能未登录或触发限流；已中止比对以避免误删' };
       }
       const already = [], remain = [];
       for (const u of before) (have.has(u.id) ? already : remain).push(u);
@@ -994,19 +994,19 @@
       return report;
     }
 
-    // 「校验并生成报告」：只算差异，列表一个字都不动
+    // 「校验关注状态」：只算差异，不改动列表
     $('pfm-verify').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       pfmTaskLock = 'verify';
       setBusy(true);
       try {
         const r = await buildVerifyReport();
-        if (!r.ok) return flash(`⚠️ 校验中止：${r.why}。列表未做任何修改。`, '#f59e0b');
+        if (!r.ok) return flash(`⚠️ 校验中止：${r.why}。列表未做改动。`, '#f59e0b');
         if (r.alreadyCount === 0) {
-          flash(`✅ 校验完成：列表里的 ${r.total} 位都还没关注，无需清理。（列表未改动）`, '#10b981');
+          flash(`✅ 校验完成：列表中 ${r.total} 位均未关注，无需移除。列表未改动。`, '#10b981');
         } else {
-          flash(`📋 校验完成：${r.total} 位中 ${r.alreadyCount} 位已在关注、${r.remainCount} 位待关注。` +
-                `列表未改动 —— 要移除这 ${r.alreadyCount} 位请再点「执行清理」。`, '#3b82f6');
+          flash(`📋 校验完成：共 ${r.total} 位，其中 ${r.alreadyCount} 位已在关注、${r.remainCount} 位待关注。` +
+                `列表未改动；如需移除这 ${r.alreadyCount} 位，请点击「移除已关注记录」。`, '#3b82f6');
         }
       } catch (e) {
         flash(`❌ 校验失败：${e.message}。列表未改动。`, '#ef4444');
@@ -1016,19 +1016,19 @@
       }
     });
 
-    // 「执行清理」：真正删除，删除前备份，可一键撤销
+    // 「移除已关注记录」：真正删除，删除前备份，可一键撤销
     $('pfm-prune').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const rep = loadVerifyReport();
-      if (!rep || !rep.ok) return flash('⚠️ 还没有可用的校验结果。先点「校验并生成报告」。', '#f59e0b');
-      if (!rep.alreadyCount) return flash('✅ 没有需要移除的（上次校验显示都未关注）。', '#10b981');
+      if (!rep || !rep.ok) return flash('⚠️ 尚无可用校验结果，请先执行「校验关注状态」。', '#f59e0b');
+      if (!rep.alreadyCount) return flash('✅ 无需移除：上次校验显示这些用户均未关注。', '#10b981');
 
       const cur = loadList();
       const curIds = new Set(cur.map(u => u.id));
       const toRemove = rep.alreadyIds.filter(id => curIds.has(id)).length;
-      if (!toRemove) return flash('ℹ️ 上次校验标记的已关注用户已不在列表里，无需清理。', '#3b82f6');
+      if (!toRemove) return flash('ℹ️ 上次校验标记的已关注用户已不在列表中，无需移除。', '#3b82f6');
 
-      if (!confirm(`将从列表移除 ${toRemove} 位「已在关注中」的用户。\n列表当前 ${cur.length} 位 → ${cur.length - toRemove} 位。\n\n删除前会自动备份，可用「撤销清理」恢复。继续？`)) return;
+      if (!confirm(`将从列表移除 ${toRemove} 位已确认在关注的用户。\n列表数量：${cur.length} → ${cur.length - toRemove}。\n\n移除前会自动备份，可通过「撤销移除」恢复。是否继续？`)) return;
 
       pfmTaskLock = 'verify';
       setBusy(true);
@@ -1038,28 +1038,28 @@
         const next = cur.filter(u => !drop.has(u.id));
         const saved = saveList(next);
         clearVerifyReport();
-        flash(`🗑 已移除 ${toRemove} 位，列表剩 ${saved.length} 位。若误删，点「撤销清理」可恢复。`, '#10b981');
+        flash(`🗑 已移除 ${toRemove} 位，列表剩余 ${saved.length} 位。可通过「撤销移除」恢复。`, '#10b981');
       } catch (e) {
-        flash(`❌ 清理失败：${e.message}`, '#ef4444');
+        flash(`❌ 移除失败：${e.message}`, '#ef4444');
       } finally {
         pfmTaskLock = null;
         setBusy(false);
       }
     });
 
-    // 「撤销清理」：把上一次清理前的列表恢复回来
+    // 「撤销移除」：把上一次清理前的列表恢复回来
     $('pfm-undo').addEventListener('click', () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
-      if (!hasBackup()) return flash('ℹ️ 没有可撤销的清理备份。', '#3b82f6');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (!hasBackup()) return flash('ℹ️ 没有可撤销的移除备份。', '#3b82f6');
       const n = restoreList();
-      if (n > 0) flash(`↩️ 已恢复到清理前的列表（${n} 位）。`, '#10b981');
+      if (n > 0) flash(`↩️ 已恢复到移除前的列表（${n} 位）。`, '#10b981');
       else flash('❌ 撤销失败：备份数据不可用。', '#ef4444');
     });
 
     $('pfm-paste').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const list = loadList();
-      if (!list.length) return flash('❌ 列表里还没有用户。', '#ef4444');
+      if (!list.length) return flash('❌ 列表中暂无用户。', '#ef4444');
 
       pfmTaskLock = 'follow';
       setBusy(true);
@@ -1067,7 +1067,7 @@
       try {
         flash('⏳ 正在初始化…', '#3b82f6');
         token = await getCsrfTokenWithFallback();
-        if (!token) { flash('❌ 没拿到 CSRF 令牌。请先在页面里手动关注一个用户，再回来重试。', '#ef4444'); return; }
+        if (!token) { flash('❌ 未获取到 CSRF 令牌。请先在页面上手动关注一位用户，然后重试。', '#ef4444'); return; }
 
         const limitVal = parseInt($('pfm-limit').value, 10);
         const defaultRestrict = $('pfm-restrict').value === '1' ? '1' : '0';
@@ -1090,7 +1090,7 @@
             skipSet = new Set(cur.filter(u => have.has(u.id)).map(u => u.id));
             preSkipped = skipSet.size;
             if (preSkipped > 0) {
-              flash(`ℹ️ 有 ${preSkipped} 位已在关注中，本次会跳过（不会改动你的列表）。`, '#3b82f6');
+              flash(`ℹ️ ${preSkipped} 位已在关注中，将自动跳过；列表不受影响。`, '#3b82f6');
             }
           }
         } catch (_) {}
@@ -1099,7 +1099,7 @@
         if (!current.length) { flash('✅ 列表为空，无需执行。', '#10b981'); return; }
         const pending = current.filter(u => !skipSet.has(u.id));
         if (!pending.length) {
-          flash(`✅ 列表里的 ${current.length} 位都已在关注中，无需再执行。（列表未改动，可点「执行清理」手动移除）`, '#10b981');
+          flash(`✅ 列表中 ${current.length} 位均已在关注，无需执行。列表未改动，可通过「移除已关注记录」手动移除。`, '#10b981');
           return;
         }
         // ── 顺序处理 ──────────────────────────────────────────────────────────
@@ -1115,10 +1115,10 @@
 
         const restNote = batchN > 0 ? `每 ${batchN} 个长休眠 ${restSec} 秒。` : '不启用长休眠。';
         const wallNote = wallMode === 'refollow'
-          ? '撞墙时【取消关注再关注回来】—— 对方会收到重复关注通知，请谨慎。'
-          : (wallMode === 'pause' ? '撞墙时暂停等待后自动续跑。' : '撞墙时立即停止并保留进度。');
+          ? '限流处理为「取消关注后重新关注」：对方会收到重复关注通知，请谨慎使用。'
+          : (wallMode === 'pause' ? '限流时暂停，冷却后自动继续。' : '限流时立即停止并保留当前进度。');
         if (!confirm(`将关注 ${jobs.length} 位用户（公开 ${pubN} / 私密 ${privN}）。\n` +
-                     `基准间隔 ${baseDelay} 毫秒，实际在 1～${jitterMax} 倍之间随机。\n${restNote}\n${wallNote}`)) return;
+                     `间隔基准 ${baseDelay} 毫秒，实际按 1–${jitterMax} 倍随机浮动。\n${restNote}\n${wallNote}`)) return;
 
         const controls = $('pfm-controls');
         controls.style.display = 'flex';
@@ -1148,7 +1148,7 @@
           while (isPaused && !shouldStop) await sleep(200);
           if (shouldStop) break;
 
-          flash(`⏳ ${u.restrict === '1' ? '私密' : '公开'}关注 ${u.name}…（${i + 1}/${jobs.length}）`, '#3b82f6');
+          flash(`⏳ 正在关注（${u.restrict === '1' ? '私密' : '公开'}）：${u.name}（${i + 1}/${jobs.length}）`, '#3b82f6');
           let verdict = 'fail';
           try {
             const fd = new URLSearchParams();
@@ -1177,14 +1177,14 @@
 
           setProgress(done + failed + skipped, jobs.length);
 
-          // ── 撞墙处理 ──────────────────────────────────────────────────────
+          // ── 限流处理 ──────────────────────────────────────────────────────
           if (rateLimited || streakFail >= 8) {
             const why = rateLimited ? '被 Pixiv 限流（429/403）' : '连续 8 次失败';
             if (wallMode === 'pause') {
               // 方案 A：暂停等待，然后原地重试（成功率最高、最不冒犯）
               const coolMin = 3 + Math.round(Math.random() * 2);   // 3~5 分钟，贴合 PixiC 实测
               for (let left = coolMin * 60; left > 0 && !shouldStop; left -= 5) {
-                flash(`⏸ ${why}，冷却中… 剩余 ${Math.ceil(left / 60)} 分钟（可随时点「停止」）`, '#f59e0b');
+                flash(`⏸ ${why}，冷却中：剩余 ${Math.ceil(left / 60)} 分钟（可随时停止）`, '#f59e0b');
                 await sleep(5000);
               }
               if (shouldStop) break;
@@ -1196,7 +1196,7 @@
             if (wallMode === 'refollow') {
               // 方案 B：取消关注 → 等一会儿 → 重新关注
               // 代价：对方会收到「又被关注了」的通知；且会改变他在对方列表里的位置。
-              flash(`🔁 ${why}，尝试「取消关注 → 重新关注」${u.name}…`, '#f59e0b');
+              flash(`🔁 ${why}，正在重新关注 ${u.name}…`, '#f59e0b');
               try {
                 const del = new URLSearchParams();
                 del.append('mode', 'remove_bookmark_user');
@@ -1222,31 +1222,31 @@
                     done++; confirmed.add(u.id); failed = Math.max(0, failed - 1);
                     rateLimited = false; streakFail = 0;
                     setProgress(done + failed + skipped, jobs.length);
-                    flash(`✅ 取消再关注成功：${u.name}`, '#10b981');
+                    flash(`✅ 已重新关注：${u.name}`, '#10b981');
                     continue;
                   }
                 }
               } catch (_) {}
               shouldStop = true;
-              flash(`⛔ ${why}，「取消再关注」也没成功，已停止。请等 10～30 分钟再试。`, '#ef4444');
+              flash(`⛔ ${why}，重新关注仍未成功，已停止。建议 10–30 分钟后重试。`, '#ef4444');
               break;
             }
             // 方案 C：直接停
             shouldStop = true;
-            flash(`⛔ ${why}。已停止，请等 10～30 分钟再点「开始自动关注」继续。`, '#ef4444');
+            flash(`⛔ ${why}。已停止，建议 10–30 分钟后重新开始。`, '#ef4444');
             break;
           }
 
           // ── 长休眠：每 batchN 个休息一次 ────────────────────────────────────
           const handled = done + failed + skipped;
           if (batchN > 0 && handled > 0 && handled % batchN === 0 && handled < jobs.length) {
-            flash(`😴 已完成 ${handled} 个，长休眠 ${restSec} 秒…（可点「停止」中断）`, '#3b82f6');
+            flash(`😴 已完成 ${handled} 个，长休眠 ${restSec} 秒…（可随时停止）`, '#3b82f6');
             for (let left = restSec; left > 0 && !shouldStop; left -= 1) await sleep(1000);
             if (shouldStop) break;
           }
 
           const d = nextDelay(streakFail);
-          flash(`⏳ 已处理 ${handled}/${jobs.length}，${(d / 1000).toFixed(1)}s 后继续…`, '#3b82f6');
+          flash(`⏳ 已处理 ${handled}/${jobs.length}，${(d / 1000).toFixed(1)} 秒后继续…`, '#3b82f6');
           await sleep(d);
         }
 
@@ -1256,14 +1256,14 @@
         const c = countByRestrict(remain);
 
         if (rateLimited) {
-          flash(`⛔ 被限流：成功 ${done}，跳过 ${skipped}，失败 ${failed}。等 10～30 分钟再继续；未完成 ${remain.length} 位仍在列表里（公开 ${c.pub} / 私密 ${c.priv}）。`, '#ef4444');
+          flash(`⛔ 触发限流，已中止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}），建议 10–30 分钟后继续。`, '#ef4444');
         } else if (shouldStop) {
-          flash(`⏹ 已停止：成功 ${done}，跳过 ${skipped}，失败 ${failed}；未完成 ${remain.length} 位仍在列表里（公开 ${c.pub} / 私密 ${c.priv}）。`, '#f59e0b');
+          flash(`⏹ 已停止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}）。`, '#f59e0b');
         } else {
-          flash(`✅ 完成：成功 ${done}，跳过 ${skipped}，失败 ${failed}；列表剩余 ${remain.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。`, '#10b981');
+          flash(`✅ 已完成：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。列表剩余 ${remain.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。`, '#10b981');
         }
       } catch (e) {
-        flash(`❌ 执行出错：${e.message}（已保留未成功的记录）`, '#ef4444');
+        flash(`❌ 执行出错：${e.message}；未成功的记录已保留。`, '#ef4444');
       } finally {
         const controls = $('pfm-controls');
         if (controls) controls.style.display = 'none';
@@ -1328,7 +1328,7 @@
         const items = applyFilter();
         listEl.innerHTML = items.length ? items.map(u => `
           <div class="pfm-urow" data-id="${u.id}">
-            <button class="pfm-utag pfm-utag-${u.restrict}" data-id="${u.id}" title="点击切换公开/私密">${u.restrict === '1' ? '私密' : '公开'}</button>
+            <button class="pfm-utag pfm-utag-${u.restrict}" data-id="${u.id}" title="切换公开 / 私密">${u.restrict === '1' ? '私密' : '公开'}</button>
             <div class="pfm-uinfo">
               <a class="pfm-uname" href="https://www.pixiv.net/users/${u.id}" target="_blank">${u.name}</a>
               <div class="pfm-uid">ID：${u.id}</div>
@@ -1374,7 +1374,7 @@
         const cur = loadList();
         const c = countByRestrict(cur);
         if (c.pub > 0 && c.priv > 0) {
-          if (confirm(`列表里有公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n确定 = 分开导出两个文件（推荐）\n取消 = 合并导出成一个文件`)) {
+          if (confirm(`列表包含公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n「确定」分别导出两个文件（推荐）\n「取消」合并导出一个文件`)) {
             downloadJSON(cur.filter(u => u.restrict === '0'), `pixiv-following-public-${Date.now()}.json`);
             setTimeout(() => downloadJSON(cur.filter(u => u.restrict === '1'), `pixiv-following-private-${Date.now()}.json`), 400);
           } else {
@@ -1386,7 +1386,7 @@
       };
 
       backdrop.querySelector('#pfm-mclear').onclick = () => {
-        if (!confirm(`确定清空全部 ${wList.length} 位？此操作不可撤销。\n（只是清空本地列表，不会取消已关注的人）`)) return;
+        if (!confirm(`确认清空全部 ${wList.length} 位？此操作不可撤销。\n仅清空本地列表，不会取消已关注的账号。`)) return;
         saveList([]); backdrop.remove(); flash('🗑 已清空', '#ef4444');
       };
     });
@@ -1396,7 +1396,7 @@
       if (!list.length) return flash('❌ 列表为空。', '#ef4444');
       const c = countByRestrict(list);
       if (c.pub > 0 && c.priv > 0) {
-        if (confirm(`列表里有公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n确定 = 分开导出两个文件（推荐）\n取消 = 合并导出成一个文件`)) {
+        if (confirm(`列表包含公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n「确定」分别导出两个文件（推荐）\n「取消」合并导出一个文件`)) {
           downloadJSON(list.filter(u => u.restrict === '0'), `pixiv-following-public-${Date.now()}.json`);
           setTimeout(() => downloadJSON(list.filter(u => u.restrict === '1'), `pixiv-following-private-${Date.now()}.json`), 400);
         } else {
@@ -1463,12 +1463,12 @@
           const c = countByRestrict(saved);
           const bits = [];
           if (added) bits.push(`新增 ${added}`);
-          if (updated) bits.push(`改可见性 ${updated}`);
+          if (updated) bits.push(`可见性更新 ${updated}`);
           if (!added && !updated) bits.push('无变化');
-          flash(`📂 导入完成（并入「${IMPORT_MODE_TEXT[mode]}」）：${bits.join('，')}；` +
+          flash(`📂 导入完成，已并入「${IMPORT_MODE_TEXT[mode]}」：${bits.join('，')}；` +
                 `列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）`, '#10b981');
         } catch (err) {
-          flash('❌ 导入失败：文件不是有效的 JSON', '#ef4444');
+          flash('❌ 导入失败：文件不是有效的 JSON。', '#ef4444');
         }
       };
       r.readAsText(file);
@@ -1477,8 +1477,8 @@
 
     $('pfm-clear').onclick = () => {
       const n = loadList().length;
-      if (!n) return flash('❌ 列表已经是空的。', '#ef4444');
-      if (!confirm(`确定清空列表里的 ${n} 位？\n只是清空本地记录，不会取消已关注的人。`)) return;
+      if (!n) return flash('❌ 列表已为空。', '#ef4444');
+      if (!confirm(`确认清空列表中的 ${n} 位？\n仅清空本地记录，不会取消已关注的账号。`)) return;
       saveList([]); flash('🗑 已清空', '#ef4444');
     };
 

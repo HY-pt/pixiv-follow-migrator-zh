@@ -53,7 +53,7 @@
         const items = applyFilter();
         listEl.innerHTML = items.length ? items.map(u => `
           <div class="pfm-urow" data-id="${u.id}">
-            <button class="pfm-utag pfm-utag-${u.restrict}" data-id="${u.id}" title="点击切换公开/私密">${u.restrict === '1' ? '私密' : '公开'}</button>
+            <button class="pfm-utag pfm-utag-${u.restrict}" data-id="${u.id}" title="切换公开 / 私密">${u.restrict === '1' ? '私密' : '公开'}</button>
             <div class="pfm-uinfo">
               <a class="pfm-uname" href="https://www.pixiv.net/users/${u.id}" target="_blank">${u.name}</a>
               <div class="pfm-uid">ID：${u.id}</div>
@@ -99,7 +99,7 @@
         const cur = loadList();
         const c = countByRestrict(cur);
         if (c.pub > 0 && c.priv > 0) {
-          if (confirm(`列表里有公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n确定 = 分开导出两个文件（推荐）\n取消 = 合并导出成一个文件`)) {
+          if (confirm(`列表包含公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n「确定」分别导出两个文件（推荐）\n「取消」合并导出一个文件`)) {
             downloadJSON(cur.filter(u => u.restrict === '0'), `pixiv-following-public-${Date.now()}.json`);
             setTimeout(() => downloadJSON(cur.filter(u => u.restrict === '1'), `pixiv-following-private-${Date.now()}.json`), 400);
           } else {
@@ -111,7 +111,7 @@
       };
 
       backdrop.querySelector('#pfm-mclear').onclick = () => {
-        if (!confirm(`确定清空全部 ${wList.length} 位？此操作不可撤销。\n（只是清空本地列表，不会取消已关注的人）`)) return;
+        if (!confirm(`确认清空全部 ${wList.length} 位？此操作不可撤销。\n仅清空本地列表，不会取消已关注的账号。`)) return;
         saveList([]); backdrop.remove(); flash('🗑 已清空', '#ef4444');
       };
     });
@@ -121,7 +121,7 @@
       if (!list.length) return flash('❌ 列表为空。', '#ef4444');
       const c = countByRestrict(list);
       if (c.pub > 0 && c.priv > 0) {
-        if (confirm(`列表里有公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n确定 = 分开导出两个文件（推荐）\n取消 = 合并导出成一个文件`)) {
+        if (confirm(`列表包含公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n「确定」分别导出两个文件（推荐）\n「取消」合并导出一个文件`)) {
           downloadJSON(list.filter(u => u.restrict === '0'), `pixiv-following-public-${Date.now()}.json`);
           setTimeout(() => downloadJSON(list.filter(u => u.restrict === '1'), `pixiv-following-private-${Date.now()}.json`), 400);
         } else {
@@ -188,12 +188,12 @@
           const c = countByRestrict(saved);
           const bits = [];
           if (added) bits.push(`新增 ${added}`);
-          if (updated) bits.push(`改可见性 ${updated}`);
+          if (updated) bits.push(`可见性更新 ${updated}`);
           if (!added && !updated) bits.push('无变化');
-          flash(`📂 导入完成（并入「${IMPORT_MODE_TEXT[mode]}」）：${bits.join('，')}；` +
+          flash(`📂 导入完成，已并入「${IMPORT_MODE_TEXT[mode]}」：${bits.join('，')}；` +
                 `列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）`, '#10b981');
         } catch (err) {
-          flash('❌ 导入失败：文件不是有效的 JSON', '#ef4444');
+          flash('❌ 导入失败：文件不是有效的 JSON。', '#ef4444');
         }
       };
       r.readAsText(file);
@@ -202,7 +202,7 @@
 
     $('pfm-clear').onclick = () => {
       const n = loadList().length;
-      if (!n) return flash('❌ 列表已经是空的。', '#ef4444');
-      if (!confirm(`确定清空列表里的 ${n} 位？\n只是清空本地记录，不会取消已关注的人。`)) return;
+      if (!n) return flash('❌ 列表已为空。', '#ef4444');
+      if (!confirm(`确认清空列表中的 ${n} 位？\n仅清空本地记录，不会取消已关注的账号。`)) return;
       saveList([]); flash('🗑 已清空', '#ef4444');
     };

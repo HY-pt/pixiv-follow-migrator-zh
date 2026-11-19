@@ -34,16 +34,16 @@
 
     // ── 校验（只读）：比对目标账号已有收藏，产出报告，【绝不修改列表】 ──────────
     // 旧版在这里直接 saveList(remain)，一校验就永久删人，且没有中间态、无法撤销。
-    // 现在拆成两步：本函数只算差异；真正删除由「执行清理」按钮单独确认。
+    // 现在拆成两步：本函数只算差异；真正删除由「移除已关注记录」按钮单独确认。
     async function buildVerifyReport() {
       const before = loadList();
       if (!before.length) return { ok: false, why: '列表为空' };
       flash('⏳ 正在比对目标账号已有的关注…', '#3b82f6');
       const have = await fetchExistingFollowIds();
       // have === null 表示连自己的 UID 都取不到；空 Set 表示页面都失败 —— 都不足以下结论
-      if (!have) return { ok: false, why: '取不到当前账号信息（请确认已登录 pixiv）' };
+      if (!have) return { ok: false, why: '无法获取当前账号信息（请确认已登录 Pixiv）' };
       if (have.size === 0) {
-        return { ok: false, why: '目标账号的关注列表读回 0 条，可能未登录或被限流，已中止比对以免误删' };
+        return { ok: false, why: '目标账号关注列表返回 0 条，可能未登录或触发限流；已中止比对以避免误删' };
       }
       const already = [], remain = [];
       for (const u of before) (have.has(u.id) ? already : remain).push(u);
@@ -60,19 +60,19 @@
       return report;
     }
 
-    // 「校验并生成报告」：只算差异，列表一个字都不动
+    // 「校验关注状态」：只算差异，不改动列表
     $('pfm-verify').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       pfmTaskLock = 'verify';
       setBusy(true);
       try {
         const r = await buildVerifyReport();
-        if (!r.ok) return flash(`⚠️ 校验中止：${r.why}。列表未做任何修改。`, '#f59e0b');
+        if (!r.ok) return flash(`⚠️ 校验中止：${r.why}。列表未做改动。`, '#f59e0b');
         if (r.alreadyCount === 0) {
-          flash(`✅ 校验完成：列表里的 ${r.total} 位都还没关注，无需清理。（列表未改动）`, '#10b981');
+          flash(`✅ 校验完成：列表中 ${r.total} 位均未关注，无需移除。列表未改动。`, '#10b981');
         } else {
-          flash(`📋 校验完成：${r.total} 位中 ${r.alreadyCount} 位已在关注、${r.remainCount} 位待关注。` +
-                `列表未改动 —— 要移除这 ${r.alreadyCount} 位请再点「执行清理」。`, '#3b82f6');
+          flash(`📋 校验完成：共 ${r.total} 位，其中 ${r.alreadyCount} 位已在关注、${r.remainCount} 位待关注。` +
+                `列表未改动；如需移除这 ${r.alreadyCount} 位，请点击「移除已关注记录」。`, '#3b82f6');
         }
       } catch (e) {
         flash(`❌ 校验失败：${e.message}。列表未改动。`, '#ef4444');
@@ -82,19 +82,19 @@
       }
     });
 
-    // 「执行清理」：真正删除，删除前备份，可一键撤销
+    // 「移除已关注记录」：真正删除，删除前备份，可一键撤销
     $('pfm-prune').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const rep = loadVerifyReport();
-      if (!rep || !rep.ok) return flash('⚠️ 还没有可用的校验结果。先点「校验并生成报告」。', '#f59e0b');
-      if (!rep.alreadyCount) return flash('✅ 没有需要移除的（上次校验显示都未关注）。', '#10b981');
+      if (!rep || !rep.ok) return flash('⚠️ 尚无可用校验结果，请先执行「校验关注状态」。', '#f59e0b');
+      if (!rep.alreadyCount) return flash('✅ 无需移除：上次校验显示这些用户均未关注。', '#10b981');
 
       const cur = loadList();
       const curIds = new Set(cur.map(u => u.id));
       const toRemove = rep.alreadyIds.filter(id => curIds.has(id)).length;
-      if (!toRemove) return flash('ℹ️ 上次校验标记的已关注用户已不在列表里，无需清理。', '#3b82f6');
+      if (!toRemove) return flash('ℹ️ 上次校验标记的已关注用户已不在列表中，无需移除。', '#3b82f6');
 
-      if (!confirm(`将从列表移除 ${toRemove} 位「已在关注中」的用户。\n列表当前 ${cur.length} 位 → ${cur.length - toRemove} 位。\n\n删除前会自动备份，可用「撤销清理」恢复。继续？`)) return;
+      if (!confirm(`将从列表移除 ${toRemove} 位已确认在关注的用户。\n列表数量：${cur.length} → ${cur.length - toRemove}。\n\n移除前会自动备份，可通过「撤销移除」恢复。是否继续？`)) return;
 
       pfmTaskLock = 'verify';
       setBusy(true);
@@ -104,28 +104,28 @@
         const next = cur.filter(u => !drop.has(u.id));
         const saved = saveList(next);
         clearVerifyReport();
-        flash(`🗑 已移除 ${toRemove} 位，列表剩 ${saved.length} 位。若误删，点「撤销清理」可恢复。`, '#10b981');
+        flash(`🗑 已移除 ${toRemove} 位，列表剩余 ${saved.length} 位。可通过「撤销移除」恢复。`, '#10b981');
       } catch (e) {
-        flash(`❌ 清理失败：${e.message}`, '#ef4444');
+        flash(`❌ 移除失败：${e.message}`, '#ef4444');
       } finally {
         pfmTaskLock = null;
         setBusy(false);
       }
     });
 
-    // 「撤销清理」：把上一次清理前的列表恢复回来
+    // 「撤销移除」：把上一次清理前的列表恢复回来
     $('pfm-undo').addEventListener('click', () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
-      if (!hasBackup()) return flash('ℹ️ 没有可撤销的清理备份。', '#3b82f6');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (!hasBackup()) return flash('ℹ️ 没有可撤销的移除备份。', '#3b82f6');
       const n = restoreList();
-      if (n > 0) flash(`↩️ 已恢复到清理前的列表（${n} 位）。`, '#10b981');
+      if (n > 0) flash(`↩️ 已恢复到移除前的列表（${n} 位）。`, '#10b981');
       else flash('❌ 撤销失败：备份数据不可用。', '#ef4444');
     });
 
     $('pfm-paste').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在执行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等它结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const list = loadList();
-      if (!list.length) return flash('❌ 列表里还没有用户。', '#ef4444');
+      if (!list.length) return flash('❌ 列表中暂无用户。', '#ef4444');
 
       pfmTaskLock = 'follow';
       setBusy(true);
@@ -133,7 +133,7 @@
       try {
         flash('⏳ 正在初始化…', '#3b82f6');
         token = await getCsrfTokenWithFallback();
-        if (!token) { flash('❌ 没拿到 CSRF 令牌。请先在页面里手动关注一个用户，再回来重试。', '#ef4444'); return; }
+        if (!token) { flash('❌ 未获取到 CSRF 令牌。请先在页面上手动关注一位用户，然后重试。', '#ef4444'); return; }
 
         const limitVal = parseInt($('pfm-limit').value, 10);
         const defaultRestrict = $('pfm-restrict').value === '1' ? '1' : '0';
@@ -156,7 +156,7 @@
             skipSet = new Set(cur.filter(u => have.has(u.id)).map(u => u.id));
             preSkipped = skipSet.size;
             if (preSkipped > 0) {
-              flash(`ℹ️ 有 ${preSkipped} 位已在关注中，本次会跳过（不会改动你的列表）。`, '#3b82f6');
+              flash(`ℹ️ ${preSkipped} 位已在关注中，将自动跳过；列表不受影响。`, '#3b82f6');
             }
           }
         } catch (_) {}
@@ -165,7 +165,7 @@
         if (!current.length) { flash('✅ 列表为空，无需执行。', '#10b981'); return; }
         const pending = current.filter(u => !skipSet.has(u.id));
         if (!pending.length) {
-          flash(`✅ 列表里的 ${current.length} 位都已在关注中，无需再执行。（列表未改动，可点「执行清理」手动移除）`, '#10b981');
+          flash(`✅ 列表中 ${current.length} 位均已在关注，无需执行。列表未改动，可通过「移除已关注记录」手动移除。`, '#10b981');
           return;
         }
         // ── 顺序处理 ──────────────────────────────────────────────────────────
@@ -181,10 +181,10 @@
 
         const restNote = batchN > 0 ? `每 ${batchN} 个长休眠 ${restSec} 秒。` : '不启用长休眠。';
         const wallNote = wallMode === 'refollow'
-          ? '撞墙时【取消关注再关注回来】—— 对方会收到重复关注通知，请谨慎。'
-          : (wallMode === 'pause' ? '撞墙时暂停等待后自动续跑。' : '撞墙时立即停止并保留进度。');
+          ? '限流处理为「取消关注后重新关注」：对方会收到重复关注通知，请谨慎使用。'
+          : (wallMode === 'pause' ? '限流时暂停，冷却后自动继续。' : '限流时立即停止并保留当前进度。');
         if (!confirm(`将关注 ${jobs.length} 位用户（公开 ${pubN} / 私密 ${privN}）。\n` +
-                     `基准间隔 ${baseDelay} 毫秒，实际在 1～${jitterMax} 倍之间随机。\n${restNote}\n${wallNote}`)) return;
+                     `间隔基准 ${baseDelay} 毫秒，实际按 1–${jitterMax} 倍随机浮动。\n${restNote}\n${wallNote}`)) return;
 
         const controls = $('pfm-controls');
         controls.style.display = 'flex';
@@ -214,7 +214,7 @@
           while (isPaused && !shouldStop) await sleep(200);
           if (shouldStop) break;
 
-          flash(`⏳ ${u.restrict === '1' ? '私密' : '公开'}关注 ${u.name}…（${i + 1}/${jobs.length}）`, '#3b82f6');
+          flash(`⏳ 正在关注（${u.restrict === '1' ? '私密' : '公开'}）：${u.name}（${i + 1}/${jobs.length}）`, '#3b82f6');
           let verdict = 'fail';
           try {
             const fd = new URLSearchParams();
@@ -243,14 +243,14 @@
 
           setProgress(done + failed + skipped, jobs.length);
 
-          // ── 撞墙处理 ──────────────────────────────────────────────────────
+          // ── 限流处理 ──────────────────────────────────────────────────────
           if (rateLimited || streakFail >= 8) {
             const why = rateLimited ? '被 Pixiv 限流（429/403）' : '连续 8 次失败';
             if (wallMode === 'pause') {
               // 方案 A：暂停等待，然后原地重试（成功率最高、最不冒犯）
               const coolMin = 3 + Math.round(Math.random() * 2);   // 3~5 分钟，贴合 PixiC 实测
               for (let left = coolMin * 60; left > 0 && !shouldStop; left -= 5) {
-                flash(`⏸ ${why}，冷却中… 剩余 ${Math.ceil(left / 60)} 分钟（可随时点「停止」）`, '#f59e0b');
+                flash(`⏸ ${why}，冷却中：剩余 ${Math.ceil(left / 60)} 分钟（可随时停止）`, '#f59e0b');
                 await sleep(5000);
               }
               if (shouldStop) break;
@@ -262,7 +262,7 @@
             if (wallMode === 'refollow') {
               // 方案 B：取消关注 → 等一会儿 → 重新关注
               // 代价：对方会收到「又被关注了」的通知；且会改变他在对方列表里的位置。
-              flash(`🔁 ${why}，尝试「取消关注 → 重新关注」${u.name}…`, '#f59e0b');
+              flash(`🔁 ${why}，正在重新关注 ${u.name}…`, '#f59e0b');
               try {
                 const del = new URLSearchParams();
                 del.append('mode', 'remove_bookmark_user');
@@ -288,31 +288,31 @@
                     done++; confirmed.add(u.id); failed = Math.max(0, failed - 1);
                     rateLimited = false; streakFail = 0;
                     setProgress(done + failed + skipped, jobs.length);
-                    flash(`✅ 取消再关注成功：${u.name}`, '#10b981');
+                    flash(`✅ 已重新关注：${u.name}`, '#10b981');
                     continue;
                   }
                 }
               } catch (_) {}
               shouldStop = true;
-              flash(`⛔ ${why}，「取消再关注」也没成功，已停止。请等 10～30 分钟再试。`, '#ef4444');
+              flash(`⛔ ${why}，重新关注仍未成功，已停止。建议 10–30 分钟后重试。`, '#ef4444');
               break;
             }
             // 方案 C：直接停
             shouldStop = true;
-            flash(`⛔ ${why}。已停止，请等 10～30 分钟再点「开始自动关注」继续。`, '#ef4444');
+            flash(`⛔ ${why}。已停止，建议 10–30 分钟后重新开始。`, '#ef4444');
             break;
           }
 
           // ── 长休眠：每 batchN 个休息一次 ────────────────────────────────────
           const handled = done + failed + skipped;
           if (batchN > 0 && handled > 0 && handled % batchN === 0 && handled < jobs.length) {
-            flash(`😴 已完成 ${handled} 个，长休眠 ${restSec} 秒…（可点「停止」中断）`, '#3b82f6');
+            flash(`😴 已完成 ${handled} 个，长休眠 ${restSec} 秒…（可随时停止）`, '#3b82f6');
             for (let left = restSec; left > 0 && !shouldStop; left -= 1) await sleep(1000);
             if (shouldStop) break;
           }
 
           const d = nextDelay(streakFail);
-          flash(`⏳ 已处理 ${handled}/${jobs.length}，${(d / 1000).toFixed(1)}s 后继续…`, '#3b82f6');
+          flash(`⏳ 已处理 ${handled}/${jobs.length}，${(d / 1000).toFixed(1)} 秒后继续…`, '#3b82f6');
           await sleep(d);
         }
 
@@ -322,14 +322,14 @@
         const c = countByRestrict(remain);
 
         if (rateLimited) {
-          flash(`⛔ 被限流：成功 ${done}，跳过 ${skipped}，失败 ${failed}。等 10～30 分钟再继续；未完成 ${remain.length} 位仍在列表里（公开 ${c.pub} / 私密 ${c.priv}）。`, '#ef4444');
+          flash(`⛔ 触发限流，已中止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}），建议 10–30 分钟后继续。`, '#ef4444');
         } else if (shouldStop) {
-          flash(`⏹ 已停止：成功 ${done}，跳过 ${skipped}，失败 ${failed}；未完成 ${remain.length} 位仍在列表里（公开 ${c.pub} / 私密 ${c.priv}）。`, '#f59e0b');
+          flash(`⏹ 已停止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}）。`, '#f59e0b');
         } else {
-          flash(`✅ 完成：成功 ${done}，跳过 ${skipped}，失败 ${failed}；列表剩余 ${remain.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。`, '#10b981');
+          flash(`✅ 已完成：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。列表剩余 ${remain.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。`, '#10b981');
         }
       } catch (e) {
-        flash(`❌ 执行出错：${e.message}（已保留未成功的记录）`, '#ef4444');
+        flash(`❌ 执行出错：${e.message}；未成功的记录已保留。`, '#ef4444');
       } finally {
         const controls = $('pfm-controls');
         if (controls) controls.style.display = 'none';
