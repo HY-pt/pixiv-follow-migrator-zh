@@ -21,9 +21,9 @@ const report = [];
 const counts = new Map();
 
 // ── 1. 脚本头 ───────────────────────────────────────────────────────────────
-s = s.replace(/^\/\/ @version .*$/m, '// @version 3.5.1');
+s = s.replace(/^\/\/ @version .*$/m, '// @version 3.5.2');
 s = s.replace(/^\/\/ @description .*$/m,
-  '// @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。中文界面本地增强版。');
+  '// @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。界面由本仓库自行汉化（上游为英文界面）并修复缺陷。');
 s = s.replace(/^\/\/ @downloadURL .*\r?\n/m, '');
 s = s.replace(/^\/\/ @updateURL .*\r?\n/m, '');
 
@@ -44,7 +44,8 @@ s = s.replace('// ==/UserScript==',
   '// ==/UserScript==\n' +
   '// ── 中文界面 · 本地增强版 · 上游：Pixiv Follow Migrator v3.0 by godlessX (MIT) ──\n' +
   '//    本分支维护者：HY-pt  https://github.com/HY-pt/pixiv-follow-migrator-zh\n' +
-  '//    在汉化基础上修了：①抓取只翻一页就停（pixiv 单页上限 100）②关注节奏过于规律被限流\n' +
+  '//    界面汉化由本分支自行完成（上游 v3.0 为英文界面）；在汉化之外还修了：\n' +
+  '//    ①抓取只翻一页就停（pixiv 单页上限 100）②关注节奏过于规律被限流\n' +
   '//    ③列表不区分公开/私密 ④撞到限流后可能丢失待办列表 ⑤可重复点击执行 ⑥迁移后关注顺序整体颠倒。\n' +
   '//    分发：GitHub release 提供文件快照，Greasy Fork 作为更新源（站内自动托管 updateURL）。\n' +
   '//    因此本文件刻意不含 @downloadURL / @updateURL —— Greasy Fork 规则禁止指向外部替代源。\n' +
