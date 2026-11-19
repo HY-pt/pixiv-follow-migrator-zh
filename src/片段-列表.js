@@ -7,7 +7,7 @@
 
     $('pfm-view').addEventListener('click', () => {
       const list = loadList();
-      if (!list.length) return flash('❌ 列表为空。', '#ef4444');
+      if (!list.length) return flash('列表为空。', '#ef4444');
       const cnt = countByRestrict(list);
 
       const backdrop = document.createElement('div');
@@ -15,7 +15,7 @@
       backdrop.innerHTML = `
         <div id="pfm-modal">
           <div id="pfm-mhead">
-            <span>👥 用户（${list.length}）<small style="font-weight:400;opacity:.7"> 公开 ${cnt.pub} / 私密 ${cnt.priv}</small></span>
+            <span>用户（${list.length}）<small style="font-weight:400;opacity:.7"> 公开 ${cnt.pub} / 私密 ${cnt.priv}</small></span>
             <button id="pfm-mx">✕</button>
           </div>
           <input id="pfm-msearch" placeholder="搜索昵称或 ID…" autofocus>
@@ -112,13 +112,13 @@
 
       backdrop.querySelector('#pfm-mclear').onclick = () => {
         if (!confirm(`确认清空全部 ${wList.length} 位？此操作不可撤销。\n仅清空本地列表，不会取消已关注的账号。`)) return;
-        saveList([]); backdrop.remove(); flash('🗑 已清空', '#ef4444');
+        saveList([]); backdrop.remove(); flash('已清空', '#ef4444');
       };
     });
 
     $('pfm-export').onclick = () => {
       const list = loadList();
-      if (!list.length) return flash('❌ 列表为空。', '#ef4444');
+      if (!list.length) return flash('列表为空。', '#ef4444');
       const c = countByRestrict(list);
       if (c.pub > 0 && c.priv > 0) {
         if (confirm(`列表包含公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n「确定」分别导出两个文件（推荐）\n「取消」合并导出一个文件`)) {
@@ -190,10 +190,10 @@
           if (added) bits.push(`新增 ${added}`);
           if (updated) bits.push(`可见性更新 ${updated}`);
           if (!added && !updated) bits.push('无变化');
-          flash(`📂 导入完成，已并入「${IMPORT_MODE_TEXT[mode]}」：${bits.join('，')}；` +
+          flash(`导入完成，已并入「${IMPORT_MODE_TEXT[mode]}」：${bits.join('，')}；` +
                 `列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）`, '#10b981');
         } catch (err) {
-          flash('❌ 导入失败：文件不是有效的 JSON。', '#ef4444');
+          flash('导入失败：文件不是有效的 JSON。', '#ef4444');
         }
       };
       r.readAsText(file);
@@ -202,7 +202,7 @@
 
     $('pfm-clear').onclick = () => {
       const n = loadList().length;
-      if (!n) return flash('❌ 列表已为空。', '#ef4444');
+      if (!n) return flash('列表已为空。', '#ef4444');
       if (!confirm(`确认清空列表中的 ${n} 位？\n仅清空本地记录，不会取消已关注的账号。`)) return;
-      saveList([]); flash('🗑 已清空', '#ef4444');
+      saveList([]); flash('已清空', '#ef4444');
     };

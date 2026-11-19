@@ -123,11 +123,14 @@ const setList = a => storage.set('pfm_list', JSON.stringify(a));
 const status = () => (registry.get('pfm-status') || {}).textContent || '';
 const mk = (n, from = 0) => ALL.slice(from, from + n).map(u => ({ id: String(u.userId), name: u.userName, restrict: String(u.userId) >= '200000' ? '1' : '0' }));
 
+const PROGRESS = /^(正在|已处理|续抓|抓取公开关注|抓取私密关注|长休眠|已暂停|已继续|被 Pixiv 限流|准备就绪)/;
+const isFinal = t => !!t && !PROGRESS.test(t);
+
 async function untilFinal(maxMs = 45000) {
   const t0 = Date.now();
   while (Date.now() - t0 < maxMs) {
     const t = status();
-    if (/^[✅⚠️❌⏹⛔ℹ️📂]/.test(t)) return t;
+    if (isFinal(t)) return t;
     await wait(120);
   }
   return 'TIMEOUT: ' + status();
@@ -234,10 +237,10 @@ const ok = (label, cond, detail) => results.push({ label, pass: !!cond, detail }
     click('pfm-verify');                      // 立刻点校验：也应被锁拒绝
     const lockedMsg = status();                 // 立即采样，此时还没进入关注循环
     const t0 = Date.now();
-    while (Date.now() - t0 < 30000 && /^[⏳]/.test(status())) await wait(150);
+    while (Date.now() - t0 < 30000 && /^(正在|已处理)/.test(status())) await wait(150);
     await wait(300);
     ok('执行中重复点「开始自动关注」不会重复跑', st.seq === 10, '总共发出 ' + st.seq + ' 次关注请求（列表 10 人，重复执行会是 20）');
-    ok('执行中「校验」也被锁拒绝', /正在执行/.test(lockedMsg), '第二次点击时状态栏「' + lockedMsg + '」');
+    ok('执行中「校验」也被锁拒绝', /正在进行/.test(lockedMsg), '第二次点击时状态栏「' + lockedMsg + '」');
   }
 
   // ── 关注时按每条自己的可见性发送 ─────────────────────────────────────────

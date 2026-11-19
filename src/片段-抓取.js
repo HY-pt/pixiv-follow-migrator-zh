@@ -3,7 +3,7 @@
     // 顺序靠「追加」保证：pixiv 关注页是 1→N 由新到旧，从第 1 页开始逐页抓，
     // 每页内部按 DOM 顺序 push，拼起来就是完整的「新→旧」顺序。
     $('pfm-scrape').addEventListener('click', () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const existing = loadList();
       const existingIds = new Set(existing.map(u => String(u.id)));
       const myId = getCurrentUserId();
@@ -37,7 +37,7 @@
         found.push({ id: id, name: n, restrict: defaultRestrict });
       });
 
-      if (!found.length) return flash('❌ 未在页面中找到用户链接，请确认当前位于关注列表页面。', '#ef4444');
+      if (!found.length) return flash('未在页面中找到用户链接，请确认当前位于关注列表页面。', '#ef4444');
 
       let added = 0;
       for (const u of found) {
@@ -48,8 +48,8 @@
       const c = countByRestrict(saved);
       const where = pageNo !== null ? `第 ${pageNo} 页` : `第 ${seq} 次抓取`;
 
-      flash(`✅ ${where}：本页新增 ${added} 位，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
-            `列表顺序按逐页追加拼接，请从第 1 页开始依次抓取；本页用户按「当前页可见性」标记。`, '#10b981');
+      flash(`${where}：本页新增 ${added} 位，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
+            `列表顺序按逐页追加拼接，请从第 1 页开始依次抓取；本页用户按上方「本页标记」归类。`, '#10b981');
     });
 
     // ── 2. 通过 API 抓取（分页到底 + 断点续抓 + 公开/私密分开入库） ─────────────
@@ -164,10 +164,10 @@
     }
 
     $('pfm-fetch').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       // 抓的是「当前登录账号」的关注列表 —— 迁移就是从自己账号搬到另一个账号，这里就该用登录身份
       const pageUserId = getCurrentUserId();
-      if (!pageUserId) return flash('❌ 请先登录 Pixiv 并打开任一用户主页。', '#ef4444');
+      if (!pageUserId) return flash('请先登录 Pixiv 并打开任一用户主页。', '#ef4444');
 
       pfmTaskLock = 'fetch';
       setBusy(true);
@@ -175,16 +175,16 @@
       const resuming = cur.show > 0 || cur.hide > 0;
 
       try {
-        flash(resuming ? `⏳ 续抓上次进度（公开第 ${cur.show + 1} 位、私密第 ${cur.hide + 1} 位）…` : '⏳ 正在抓取公开关注…', '#3b82f6');
+        flash(resuming ? `续抓上次进度（公开第 ${cur.show + 1} 位、私密第 ${cur.hide + 1} 位）…` : '正在抓取公开关注…', '#3b82f6');
 
         const pub = await apiFetchSegment(pageUserId, 'show', cur.show, (n, t, off) => {
-          flash(`⏳ 抓取公开关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
+          flash(`抓取公开关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
         });
-        flash('⏳ 正在抓取私密关注…', '#3b82f6');
+        flash('正在抓取私密关注…', '#3b82f6');
         let priv = { ids: [], total: 0, reason: null, pages: 0, nextOffset: 0, done: true };
         try {
           priv = await apiFetchSegment(pageUserId, 'hide', cur.hide, (n, t, off) => {
-            flash(`⏳ 抓取私密关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
+            flash(`抓取私密关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
           });
         } catch (e) {
           // 私密抓取失败不能静默吞掉 —— 空 catch 会让状态栏显示「私密 0/23」，看着像本来就没数据
@@ -224,7 +224,7 @@
         }
 
         if (allDone) {
-          flash(`✅ 抓取完成：${detail}。新增公开 ${addedPub} 位、私密 ${addedPriv} 位，列表共 ${saved.length} 位。${gapNote}`, '#10b981');
+          flash(`抓取完成：${detail}。新增公开 ${addedPub} 位、私密 ${addedPriv} 位，列表共 ${saved.length} 位。${gapNote}`, '#10b981');
         } else {
           const why = reason ? `原因：${reason}。` : '';
           // 注意：这里的「第 N 位」是游标 offset，不是行号；offset 可能因深翻页不满额而推进很慢，
@@ -234,10 +234,10 @@
           const nudge = `已保存进度：公开 ${pubGot}/${pub.total || '?'}、私密 ${privGot}/${priv.total || '?'}；` +
             `再次点击将从 offset=${nextShow}（私密 offset=${nextHide}）继续。` +
             `若持续在同一 offset 停止，通常是服务端限制了深翻页，多次重试可逐步推进。`;
-          flash(`⚠️ 抓取未完成：${detail}。${why}${nudge}`, '#f59e0b');
+          flash(`抓取未完成：${detail}。${why}${nudge}`, '#f59e0b');
         }
       } catch (e) {
-        flash(`❌ 出错：${e.message}`, '#ef4444');
+        flash(`出错：${e.message}`, '#ef4444');
       } finally {
         pfmTaskLock = null;
         setBusy(false);

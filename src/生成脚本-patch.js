@@ -11,7 +11,7 @@ const OUT = path.join(ROOT, 'pixiv-follow-migrator-zh.user.js');
 
 // ── 0. 应用图标（1254² 原图 → 96px PNG，构建时转 base64 data URI）──────────────
 // 标题栏与悬浮图标共用同一份图标。内嵌为 data URI 后 user.js 仍是单文件：
-// 不依赖外部图片，也不依赖 emoji 字体（各系统对 🔁 的渲染差异很大）。
+// 不依赖外部图片，也不依赖 emoji 字体（各系统对 的渲染差异很大）。
 const ICON_URI = 'data:image/png;base64,' +
   fs.readFileSync(path.join(ROOT, 'assets', 'icon-96.png')).toString('base64');
 
@@ -21,7 +21,7 @@ const report = [];
 const counts = new Map();
 
 // ── 1. 脚本头 ───────────────────────────────────────────────────────────────
-s = s.replace(/^\/\/ @version .*$/m, '// @version 3.6.0');
+s = s.replace(/^\/\/ @version .*$/m, '// @version 3.7.0');
 s = s.replace(/^\/\/ @description .*$/m,
   '// @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。界面由本仓库自行汉化（上游为英文界面）并修复缺陷。');
 s = s.replace(/^\/\/ @downloadURL .*\r?\n/m, '');
@@ -75,7 +75,15 @@ const textPairs = [
    '.pfm-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }\n' +
    '    .pfm-title-icon { width: 18px; height: 18px; display: block; flex: 0 0 auto; }'],
   ['🔁 Pixiv Migrator <span class="pfm-title-version">v3.0</span>',
-   '<img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.6.0 中文</span>'],
+   '<img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.7.0 中文</span>'],
+  // 卡片 1 的「本页标记」小行（仅 DOM 逐页抓取时用）
+  ['    .pfm-methods { display: flex; flex-direction: column; gap: 8px; }',
+   '    .pfm-methods { display: flex; flex-direction: column; gap: 8px; }\n' +
+   '    .pfm-scrape-tag { display: flex; align-items: center; justify-content: center; gap: 6px;\n' +
+   '      margin-top: 2px; font-size: 11px; color: ${sub}; }\n' +
+   '    .pfm-tag-select { width: auto; padding: 3px 8px; border-radius: 6px; font-size: 11px;\n' +
+   '      border: 1px solid ${border2}; background: ${bg}; color: ${text}; cursor: pointer; }'],
+
   // 合并「最小化」与「关闭」：只保留一个按钮
   ["          <button id=\"pfm-min\" title=\"Minimize\">—</button>\n          <button id=\"pfm-x\" title=\"Close\">✕</button>",
    "          <button id=\"pfm-min\" class=\"pfm-winbtn\" title=\"最小化到悬浮图标\" aria-label=\"最小化\"><svg viewBox=\"0 0 12 12\" width=\"12\" height=\"12\" aria-hidden=\"true\"><rect x=\"2.2\" y=\"7.4\" width=\"7\" height=\"1.8\" rx=\".5\" fill=\"currentColor\"/></svg></button>"],
@@ -84,9 +92,16 @@ const textPairs = [
 
   ['1. Grab Following List', '1. 获取关注列表'],
   ['Note: Only one method is needed.', '抓取对象为当前登录账号的关注列表。'],
-  ['⚡ Auto-Fetch All (Fast)', '⚡ 自动抓取全部'],
+  ['⚡ Auto-Fetch All (Fast)', '自动抓取全部'],
   ['>OR<', '>或<'],
-  ['📄 Scrape Page (Slow)', '📄 仅抓取当前页'],
+  ['<button class="pfm-btn pfm-btn-outline" id="pfm-scrape">📄 Scrape Page (Slow)</button>',
+   '<button class="pfm-btn pfm-btn-outline" id="pfm-scrape">仅抓取当前页</button>\n' +
+   '              <div class="pfm-scrape-tag">本页标记为\n' +
+   '                <select id="pfm-restrict" class="pfm-tag-select">\n' +
+   '                  <option value="0">公开</option>\n' +
+   '                  <option value="1">私密</option>\n' +
+   '                </select>\n' +
+   '              </div>'],
 
   ['2. Transfer to New Account', '2. 迁移到新账号'],
   ['>Follow Limit<', '>关注上限<'],
@@ -103,19 +118,19 @@ const textPairs = [
   ['>Visibility<', '>默认可见性<'],
   ['>Public<', '>公开<'],
   ['>Private<', '>私密<'],
-  ['🚀 Start Auto Follow', '🚀 开始自动关注'],
+  ['🚀 Start Auto Follow', '开始自动关注'],
 
-  ['⏸ Paused', '⏸ 已暂停'],
-  ['>⏸ Pause<', '>⏸ 暂停<'],
-  ['▶ Resumed', '▶ 已继续'],
-  ['>▶ Resume<', '>▶ 继续<'],
-  ['⏹ Stopping...', '⏹ 正在停止…'],
-  ['>⏹ Stop<', '>⏹ 停止<'],
+  ['⏸ Paused', '已暂停'],
+  ['>⏸ Pause<', '>暂停<'],
+  ['▶ Resumed', '已继续'],
+  ['>▶ Resume<', '>继续<'],
+  ['⏹ Stopping...', '正在停止…'],
+  ['>⏹ Stop<', '>停止<'],
 
-  ['👁 View List', '👁 查看列表'],
-  ['💾 Export list', '💾 导出列表'],
-  ['📂 Import list', '📂 导入列表'],
-  ['🗑 Clear list', '🗑 清空列表'],
+  ['👁 View List', '查看列表'],
+  ['💾 Export list', '导出列表'],
+  ['📂 Import list', '导入列表'],
+  ['🗑 Clear list', '清空列表'],
   // 署名：本分支作者 + 上游来源（MIT 要求保留上游署名）
   // 原版这行只是个不可点的 div（却有 hover 变色，看着像按钮），改成指向仓库的链接
   ['<div class="pfm-footer-credit">Made by Misery</div>',
@@ -130,11 +145,11 @@ const textPairs = [
    '    .pfm-footer-credit:hover { color: ${text}; text-decoration: underline; }\n' +
    '    .pfm-footer-credit:focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; border-radius: 4px; }'],
 
-  ['✅ ${added} users found & saved on this page', '✅ 本页找到并保存 ${added} 位用户'],
-  ['❌ Go to a user profile first.', '❌ 请先登录 Pixiv 并打开任一用户主页。'],
-  ['❌ List is empty.', '❌ 列表为空。'],
+  ['✅ ${added} users found & saved on this page', '本页找到并保存 ${added} 位用户'],
+  ['❌ Go to a user profile first.', '请先登录 Pixiv 并打开任一用户主页。'],
+  ['❌ List is empty.', '列表为空。'],
 
-  ['👥 Users (${list.length})', '👥 用户（${list.length}）'],
+  ['👥 Users (${list.length})', '用户（${list.length}）'],
   ['Search name or ID...', '搜索昵称或 ID…'],
   ['>Clear All<', '>全部清空<'],
   ['No results.', '没有匹配结果。'],
@@ -234,9 +249,9 @@ const codePairs = [
 
   // 4.4 校验 / 清理 / 撤销 三个独立按钮（校验不再自动删人）
   // 4.35 高级设置折叠 + 四个主按钮
-  ['<button class="pfm-btn pfm-btn-primary" id="pfm-paste">🚀 开始自动关注</button>',
+  ['<button class="pfm-btn pfm-btn-primary" id="pfm-paste">开始自动关注</button>',
    '<details id="pfm-adv">\n' +
-   '              <summary>高级设置：长休眠 · 关注顺序 · 限流处理</summary>\n' +
+   '              <summary>高级</summary>\n' +
    '              <div class="pfm-settings-grid" style="margin-top:6px;">\n' +
    '                <div class="pfm-setting-item">\n                  <label>长休眠间隔</label>\n' +
    '                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="每关注 N 位后长休眠一次；0 表示不启用">\n' +
@@ -250,7 +265,7 @@ const codePairs = [
    '                    <option value="keep">按列表顺序（关注顺序会反转）</option>\n' +
    '                  </select>\n' +
    '                </div>\n' +
-   '                <div class="pfm-setting-item pfm-settings-row">\n                  <label>当前页可见性</label>\n                  <select id="pfm-restrict" class="pfm-input">\n                    <option value="0">公开</option>\n                    <option value="1">私密</option>\n                  </select>\n                </div>\n                <div class="pfm-setting-item pfm-settings-row">\n                  <label>限流处理</label>\n' +
+   '                <div class="pfm-setting-item pfm-settings-row">\n                  <label>限流处理</label>\n' +
    '                  <select id="pfm-wall" class="pfm-input">\n' +
    '                    <option value="pause">暂停后自动继续（推荐）</option>\n' +
    '                    <option value="stop">立即停止，保留进度</option>\n' +
@@ -259,10 +274,10 @@ const codePairs = [
    '                </div>\n' +
    '              </div>\n' +
    '            </details>\n' +
-   '            <button class="pfm-btn pfm-btn-primary" id="pfm-paste" style="margin-top:8px;">🚀 开始自动关注</button>\n' +
-   '            <button class="pfm-btn pfm-btn-outline" id="pfm-verify" style="margin-top:6px;" title="只比对关注状态，不改动列表">🔍 校验关注状态</button>\n' +
-   '            <button class="pfm-btn pfm-btn-outline" id="pfm-prune" style="margin-top:5px;" title="从本地列表移除已确认在关注的用户，移除前自动备份">🗑 移除已关注记录</button>\n' +
-   '            <button class="pfm-btn pfm-btn-outline" id="pfm-undo" style="margin-top:5px;">↩️ 撤销移除</button>'],
+   '            <button class="pfm-btn pfm-btn-primary" id="pfm-paste" style="margin-top:8px;">开始自动关注</button>\n' +
+   '            <button class="pfm-btn pfm-btn-outline" id="pfm-verify" style="margin-top:6px;" title="只比对关注状态，不改动列表">校验关注状态</button>\n' +
+   '            <button class="pfm-btn pfm-btn-outline" id="pfm-prune" style="margin-top:5px;" title="从本地列表移除已确认在关注的用户，移除前自动备份">移除已关注记录</button>\n' +
+   '            <button class="pfm-btn pfm-btn-outline" id="pfm-undo" style="margin-top:5px;">撤销移除</button>'],
 
   // 4.5 拖动夹取到视口内
   ["    document.addEventListener('mousemove', e => {\n" +

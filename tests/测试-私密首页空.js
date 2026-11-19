@@ -88,13 +88,15 @@ vm.runInContext(fs.readFileSync(FILE, 'utf8'), sandbox, { filename: FILE });
 const click = id => (registry.get(id)._events.click || []).forEach(fn => fn({ target: registry.get(id) }));
 const status = () => registry.get('pfm-status').textContent || '';
 const wait = ms => new Promise(r => setTimeout(r, ms));
+const PROGRESS = /^(正在|已处理|续抓|抓取公开关注|抓取私密关注|长休眠|已暂停|已继续|被 Pixiv 限流|准备就绪)/;
+
 
 (async () => {
   click('pfm-fetch');
   const t0 = Date.now();
   while (Date.now() - t0 < 40000) {
     const t = status();
-    if (/^[✅⚠️❌⛔]/.test(t)) break;
+    if (t && !PROGRESS.test(t)) break;
     await wait(120);
   }
   const end = status();

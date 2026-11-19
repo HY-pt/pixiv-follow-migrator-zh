@@ -107,11 +107,14 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const results = [];
 const ok = (l, c, d) => results.push({ l, pass: !!c, d });
 
+const PROGRESS = /^(正在|已处理|续抓|抓取公开关注|抓取私密关注|长休眠|已暂停|已继续|被 Pixiv 限流|准备就绪)/;
+const isFinal = t => !!t && !PROGRESS.test(t);
+
 async function untilFinal(max = 30000) {
   const t0 = Date.now();
   while (Date.now() - t0 < max) {
     const t = status();
-    if (/^[✅⚠️❌⛔ℹ️📋🗑↩️😴⏸🔁]/.test(t)) return t;
+    if (isFinal(t)) return t;
     await wait(100);
   }
   return 'TIMEOUT: ' + status();
@@ -175,7 +178,7 @@ async function untilFinal(max = 30000) {
     const t0 = Date.now();
     let sawRest = false;
     while (Date.now() - t0 < 25000) {
-      if (/😴|长休眠/.test(status())) { sawRest = true; break; }
+      if (/长休眠/.test(status())) { sawRest = true; break; }
       if (st.followSeq >= 6) break;
       await wait(120);
     }
@@ -200,8 +203,8 @@ async function untilFinal(max = 30000) {
     let sawRefollow = false;
     while (Date.now() - t0 < 30000) {
       const t = status();
-      if (/取消再关注|🔁/.test(t)) sawRefollow = true;
-      if (/^[✅⛔⏹]/.test(t)) break;
+      if (/重新关注/.test(t)) sawRefollow = true;
+      if (/^(已完成|已停止|触发限流)/.test(t)) break;
       await wait(100);
     }
     const removeCalls = st.fetchLog.filter(u => u.includes('ajax_api.php')).length;
@@ -220,7 +223,7 @@ async function untilFinal(max = 30000) {
     qs('#pfm-jitter').value = '1';
     click('pfm-paste');
     const end = await untilFinal(20000);
-    ok('stop 模式撞墙后立即停止', /已停止|⛔/.test(end), `终态「${end}」`);
+    ok('stop 模式撞墙后立即停止', /已停止|触发限流/.test(end), `终态「${end}」`);
   }
 
   console.log(`\n--- case: ${CASE}`);

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Pixiv Follow Migrator 中文增强版
 // @namespace https://github.com/HY-pt/pixiv-follow-migrator-zh
-// @version 3.6.0
+// @version 3.7.0
 // @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。界面由本仓库自行汉化（上游为英文界面）并修复缺陷。
 // @author HY-pt
 // @license MIT
@@ -175,6 +175,10 @@
 
     .pfm-methods-desc { font-size: 11px; color: ${sub}; margin-bottom: 10px; text-align: center; }
     .pfm-methods { display: flex; flex-direction: column; gap: 8px; }
+    .pfm-scrape-tag { display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 2px; font-size: 11px; color: ${sub}; }
+    .pfm-tag-select { width: auto; padding: 3px 8px; border-radius: 6px; font-size: 11px;
+      border: 1px solid ${border2}; background: ${bg}; color: ${text}; cursor: pointer; }
 
     .pfm-btn {
       width: 100%; padding: 8px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
@@ -478,7 +482,7 @@
     panel.id = 'pfm';
     panel.innerHTML = `
       <div id="pfm-header">
-        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.6.0 中文</span></div>
+        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.7.0 中文</span></div>
         <div id="pfm-hbtns">
           <button id="pfm-min" class="pfm-winbtn" title="最小化到悬浮图标" aria-label="最小化"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2.2" y="7.4" width="7" height="1.8" rx=".5" fill="currentColor"/></svg></button>
         </div>
@@ -492,9 +496,15 @@
           <div class="pfm-card-body">
             <div class="pfm-methods-desc">抓取对象为当前登录账号的关注列表。</div>
             <div class="pfm-methods">
-              <button class="pfm-btn pfm-btn-outline" id="pfm-fetch">⚡ 自动抓取全部</button>
+              <button class="pfm-btn pfm-btn-outline" id="pfm-fetch">自动抓取全部</button>
               <div class="pfm-or-divider">或</div>
-              <button class="pfm-btn pfm-btn-outline" id="pfm-scrape">📄 仅抓取当前页</button>
+              <button class="pfm-btn pfm-btn-outline" id="pfm-scrape">仅抓取当前页</button>
+              <div class="pfm-scrape-tag">本页标记为
+                <select id="pfm-restrict" class="pfm-tag-select">
+                  <option value="0">公开</option>
+                  <option value="1">私密</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -525,7 +535,7 @@
               </div>
             </div>
             <details id="pfm-adv">
-              <summary>高级设置：长休眠 · 关注顺序 · 限流处理</summary>
+              <summary>高级</summary>
               <div class="pfm-settings-grid" style="margin-top:6px;">
                 <div class="pfm-setting-item">
                   <label>长休眠间隔</label>
@@ -543,13 +553,6 @@
                   </select>
                 </div>
                 <div class="pfm-setting-item pfm-settings-row">
-                  <label>当前页可见性</label>
-                  <select id="pfm-restrict" class="pfm-input">
-                    <option value="0">公开</option>
-                    <option value="1">私密</option>
-                  </select>
-                </div>
-                <div class="pfm-setting-item pfm-settings-row">
                   <label>限流处理</label>
                   <select id="pfm-wall" class="pfm-input">
                     <option value="pause">暂停后自动继续（推荐）</option>
@@ -559,10 +562,10 @@
                 </div>
               </div>
             </details>
-            <button class="pfm-btn pfm-btn-primary" id="pfm-paste" style="margin-top:8px;">🚀 开始自动关注</button>
-            <button class="pfm-btn pfm-btn-outline" id="pfm-verify" style="margin-top:6px;" title="只比对关注状态，不改动列表">🔍 校验关注状态</button>
-            <button class="pfm-btn pfm-btn-outline" id="pfm-prune" style="margin-top:5px;" title="从本地列表移除已确认在关注的用户，移除前自动备份">🗑 移除已关注记录</button>
-            <button class="pfm-btn pfm-btn-outline" id="pfm-undo" style="margin-top:5px;">↩️ 撤销移除</button>
+            <button class="pfm-btn pfm-btn-primary" id="pfm-paste" style="margin-top:8px;">开始自动关注</button>
+            <button class="pfm-btn pfm-btn-outline" id="pfm-verify" style="margin-top:6px;" title="只比对关注状态，不改动列表">校验关注状态</button>
+            <button class="pfm-btn pfm-btn-outline" id="pfm-prune" style="margin-top:5px;" title="从本地列表移除已确认在关注的用户，移除前自动备份">移除已关注记录</button>
+            <button class="pfm-btn pfm-btn-outline" id="pfm-undo" style="margin-top:5px;">撤销移除</button>
 
             <div id="pfm-prog">
               <div id="pfm-track"><div id="pfm-bar"></div></div>
@@ -570,22 +573,22 @@
             </div>
 
             <div id="pfm-controls">
-              <button class="pfm-btn-small pfm-c-yellow" id="pfm-pause">⏸ 暂停</button>
-              <button class="pfm-btn-small pfm-c-green" id="pfm-resume" style="display:none;">▶ 继续</button>
-              <button class="pfm-btn-small pfm-c-red" id="pfm-stop">⏹ 停止</button>
+              <button class="pfm-btn-small pfm-c-yellow" id="pfm-pause">暂停</button>
+              <button class="pfm-btn-small pfm-c-green" id="pfm-resume" style="display:none;">继续</button>
+              <button class="pfm-btn-small pfm-c-red" id="pfm-stop">停止</button>
             </div>
           </div>
         </div>
 
         <div class="pfm-actions-tray">
-          <button class="pfm-view-btn" id="pfm-view">👁 查看列表</button>
+          <button class="pfm-view-btn" id="pfm-view">查看列表</button>
 
           <div class="pfm-manage-row">
-            <button class="pfm-action-btn" id="pfm-export">💾 导出列表</button>
-            <button class="pfm-action-btn" id="pfm-import">📂 导入列表</button>
+            <button class="pfm-action-btn" id="pfm-export">导出列表</button>
+            <button class="pfm-action-btn" id="pfm-import">导入列表</button>
           </div>
           <div style="width: 100%;">
-            <button class="pfm-action-btn pfm-action-delete" style="width: 100%;" id="pfm-clear">🗑 清空列表</button>
+            <button class="pfm-action-btn pfm-action-delete" style="width: 100%;" id="pfm-clear">清空列表</button>
           </div>
         </div>
 
@@ -688,7 +691,7 @@
     // 顺序靠「追加」保证：pixiv 关注页是 1→N 由新到旧，从第 1 页开始逐页抓，
     // 每页内部按 DOM 顺序 push，拼起来就是完整的「新→旧」顺序。
     $('pfm-scrape').addEventListener('click', () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const existing = loadList();
       const existingIds = new Set(existing.map(u => String(u.id)));
       const myId = getCurrentUserId();
@@ -722,7 +725,7 @@
         found.push({ id: id, name: n, restrict: defaultRestrict });
       });
 
-      if (!found.length) return flash('❌ 未在页面中找到用户链接，请确认当前位于关注列表页面。', '#ef4444');
+      if (!found.length) return flash('未在页面中找到用户链接，请确认当前位于关注列表页面。', '#ef4444');
 
       let added = 0;
       for (const u of found) {
@@ -733,8 +736,8 @@
       const c = countByRestrict(saved);
       const where = pageNo !== null ? `第 ${pageNo} 页` : `第 ${seq} 次抓取`;
 
-      flash(`✅ ${where}：本页新增 ${added} 位，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
-            `列表顺序按逐页追加拼接，请从第 1 页开始依次抓取；本页用户按「当前页可见性」标记。`, '#10b981');
+      flash(`${where}：本页新增 ${added} 位，列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。` +
+            `列表顺序按逐页追加拼接，请从第 1 页开始依次抓取；本页用户按上方「本页标记」归类。`, '#10b981');
     });
 
     // ── 2. 通过 API 抓取（分页到底 + 断点续抓 + 公开/私密分开入库） ─────────────
@@ -849,10 +852,10 @@
     }
 
     $('pfm-fetch').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       // 抓的是「当前登录账号」的关注列表 —— 迁移就是从自己账号搬到另一个账号，这里就该用登录身份
       const pageUserId = getCurrentUserId();
-      if (!pageUserId) return flash('❌ 请先登录 Pixiv 并打开任一用户主页。', '#ef4444');
+      if (!pageUserId) return flash('请先登录 Pixiv 并打开任一用户主页。', '#ef4444');
 
       pfmTaskLock = 'fetch';
       setBusy(true);
@@ -860,16 +863,16 @@
       const resuming = cur.show > 0 || cur.hide > 0;
 
       try {
-        flash(resuming ? `⏳ 续抓上次进度（公开第 ${cur.show + 1} 位、私密第 ${cur.hide + 1} 位）…` : '⏳ 正在抓取公开关注…', '#3b82f6');
+        flash(resuming ? `续抓上次进度（公开第 ${cur.show + 1} 位、私密第 ${cur.hide + 1} 位）…` : '正在抓取公开关注…', '#3b82f6');
 
         const pub = await apiFetchSegment(pageUserId, 'show', cur.show, (n, t, off) => {
-          flash(`⏳ 抓取公开关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
+          flash(`抓取公开关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
         });
-        flash('⏳ 正在抓取私密关注…', '#3b82f6');
+        flash('正在抓取私密关注…', '#3b82f6');
         let priv = { ids: [], total: 0, reason: null, pages: 0, nextOffset: 0, done: true };
         try {
           priv = await apiFetchSegment(pageUserId, 'hide', cur.hide, (n, t, off) => {
-            flash(`⏳ 抓取私密关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
+            flash(`抓取私密关注：已获取 ${n}${t ? '/' + t : ''} 位（offset ${off}）…`, '#3b82f6');
           });
         } catch (e) {
           // 私密抓取失败不能静默吞掉 —— 空 catch 会让状态栏显示「私密 0/23」，看着像本来就没数据
@@ -909,7 +912,7 @@
         }
 
         if (allDone) {
-          flash(`✅ 抓取完成：${detail}。新增公开 ${addedPub} 位、私密 ${addedPriv} 位，列表共 ${saved.length} 位。${gapNote}`, '#10b981');
+          flash(`抓取完成：${detail}。新增公开 ${addedPub} 位、私密 ${addedPriv} 位，列表共 ${saved.length} 位。${gapNote}`, '#10b981');
         } else {
           const why = reason ? `原因：${reason}。` : '';
           // 注意：这里的「第 N 位」是游标 offset，不是行号；offset 可能因深翻页不满额而推进很慢，
@@ -919,10 +922,10 @@
           const nudge = `已保存进度：公开 ${pubGot}/${pub.total || '?'}、私密 ${privGot}/${priv.total || '?'}；` +
             `再次点击将从 offset=${nextShow}（私密 offset=${nextHide}）继续。` +
             `若持续在同一 offset 停止，通常是服务端限制了深翻页，多次重试可逐步推进。`;
-          flash(`⚠️ 抓取未完成：${detail}。${why}${nudge}`, '#f59e0b');
+          flash(`抓取未完成：${detail}。${why}${nudge}`, '#f59e0b');
         }
       } catch (e) {
-        flash(`❌ 出错：${e.message}`, '#ef4444');
+        flash(`出错：${e.message}`, '#ef4444');
       } finally {
         pfmTaskLock = null;
         setBusy(false);
@@ -972,7 +975,7 @@
     async function buildVerifyReport() {
       const before = loadList();
       if (!before.length) return { ok: false, why: '列表为空' };
-      flash('⏳ 正在比对目标账号已有的关注…', '#3b82f6');
+      flash('正在比对目标账号已有的关注…', '#3b82f6');
       const have = await fetchExistingFollowIds();
       // have === null 表示连自己的 UID 都取不到；空 Set 表示页面都失败 —— 都不足以下结论
       if (!have) return { ok: false, why: '无法获取当前账号信息（请确认已登录 Pixiv）' };
@@ -996,20 +999,20 @@
 
     // 「校验关注状态」：只算差异，不改动列表
     $('pfm-verify').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       pfmTaskLock = 'verify';
       setBusy(true);
       try {
         const r = await buildVerifyReport();
-        if (!r.ok) return flash(`⚠️ 校验中止：${r.why}。列表未做改动。`, '#f59e0b');
+        if (!r.ok) return flash(`校验中止：${r.why}。列表未做改动。`, '#f59e0b');
         if (r.alreadyCount === 0) {
-          flash(`✅ 校验完成：列表中 ${r.total} 位均未关注，无需移除。列表未改动。`, '#10b981');
+          flash(`校验完成：列表中 ${r.total} 位均未关注，无需移除。列表未改动。`, '#10b981');
         } else {
-          flash(`📋 校验完成：共 ${r.total} 位，其中 ${r.alreadyCount} 位已在关注、${r.remainCount} 位待关注。` +
+          flash(`校验完成：共 ${r.total} 位，其中 ${r.alreadyCount} 位已在关注、${r.remainCount} 位待关注。` +
                 `列表未改动；如需移除这 ${r.alreadyCount} 位，请点击「移除已关注记录」。`, '#3b82f6');
         }
       } catch (e) {
-        flash(`❌ 校验失败：${e.message}。列表未改动。`, '#ef4444');
+        flash(`校验失败：${e.message}。列表未改动。`, '#ef4444');
       } finally {
         pfmTaskLock = null;
         setBusy(false);
@@ -1018,10 +1021,10 @@
 
     // 「移除已关注记录」：真正删除，删除前备份，可一键撤销
     $('pfm-prune').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const rep = loadVerifyReport();
-      if (!rep || !rep.ok) return flash('⚠️ 尚无可用校验结果，请先执行「校验关注状态」。', '#f59e0b');
-      if (!rep.alreadyCount) return flash('✅ 无需移除：上次校验显示这些用户均未关注。', '#10b981');
+      if (!rep || !rep.ok) return flash('尚无可用校验结果，请先执行「校验关注状态」。', '#f59e0b');
+      if (!rep.alreadyCount) return flash('无需移除：上次校验显示这些用户均未关注。', '#10b981');
 
       const cur = loadList();
       const curIds = new Set(cur.map(u => u.id));
@@ -1038,9 +1041,9 @@
         const next = cur.filter(u => !drop.has(u.id));
         const saved = saveList(next);
         clearVerifyReport();
-        flash(`🗑 已移除 ${toRemove} 位，列表剩余 ${saved.length} 位。可通过「撤销移除」恢复。`, '#10b981');
+        flash(`已移除 ${toRemove} 位，列表剩余 ${saved.length} 位。可通过「撤销移除」恢复。`, '#10b981');
       } catch (e) {
-        flash(`❌ 移除失败：${e.message}`, '#ef4444');
+        flash(`移除失败：${e.message}`, '#ef4444');
       } finally {
         pfmTaskLock = null;
         setBusy(false);
@@ -1049,25 +1052,25 @@
 
     // 「撤销移除」：把上一次清理前的列表恢复回来
     $('pfm-undo').addEventListener('click', () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       if (!hasBackup()) return flash('ℹ️ 没有可撤销的移除备份。', '#3b82f6');
       const n = restoreList();
-      if (n > 0) flash(`↩️ 已恢复到移除前的列表（${n} 位）。`, '#10b981');
-      else flash('❌ 撤销失败：备份数据不可用。', '#ef4444');
+      if (n > 0) flash(`已恢复到移除前的列表（${n} 位）。`, '#10b981');
+      else flash('撤销失败：备份数据不可用。', '#ef4444');
     });
 
     $('pfm-paste').addEventListener('click', async () => {
-      if (pfmTaskLock) return flash(`⏳ 正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
+      if (pfmTaskLock) return flash(`正在进行「${PFM_LOCK_LABEL[pfmTaskLock] || pfmTaskLock}」，请等待当前任务结束。`, '#f59e0b');
       const list = loadList();
-      if (!list.length) return flash('❌ 列表中暂无用户。', '#ef4444');
+      if (!list.length) return flash('列表中暂无用户。', '#ef4444');
 
       pfmTaskLock = 'follow';
       setBusy(true);
       let token = null;
       try {
-        flash('⏳ 正在初始化…', '#3b82f6');
+        flash('正在初始化…', '#3b82f6');
         token = await getCsrfTokenWithFallback();
-        if (!token) { flash('❌ 未获取到 CSRF 令牌。请先在页面上手动关注一位用户，然后重试。', '#ef4444'); return; }
+        if (!token) { flash('未获取到 CSRF 令牌。请先在页面上手动关注一位用户，然后重试。', '#ef4444'); return; }
 
         const limitVal = parseInt($('pfm-limit').value, 10);
         const defaultRestrict = $('pfm-restrict').value === '1' ? '1' : '0';
@@ -1096,10 +1099,10 @@
         } catch (_) {}
 
         const current = loadList();
-        if (!current.length) { flash('✅ 列表为空，无需执行。', '#10b981'); return; }
+        if (!current.length) { flash('列表为空，无需执行。', '#10b981'); return; }
         const pending = current.filter(u => !skipSet.has(u.id));
         if (!pending.length) {
-          flash(`✅ 列表中 ${current.length} 位均已在关注，无需执行。列表未改动，可通过「移除已关注记录」手动移除。`, '#10b981');
+          flash(`列表中 ${current.length} 位均已在关注，无需执行。列表未改动，可通过「移除已关注记录」手动移除。`, '#10b981');
           return;
         }
         // ── 顺序处理 ──────────────────────────────────────────────────────────
@@ -1138,9 +1141,9 @@
           return Math.round(d);
         }
 
-        $('pfm-pause').onclick = () => { isPaused = true; $('pfm-pause').style.display = 'none'; $('pfm-resume').style.display = 'inline-block'; flash('⏸ 已暂停', '#f59e0b'); };
-        $('pfm-resume').onclick = () => { isPaused = false; $('pfm-pause').style.display = 'inline-block'; $('pfm-resume').style.display = 'none'; flash('▶ 已继续', '#10b981'); };
-        $('pfm-stop').onclick = () => { shouldStop = true; window.runFlag = false; flash('⏹ 正在停止…', '#ef4444'); };
+        $('pfm-pause').onclick = () => { isPaused = true; $('pfm-pause').style.display = 'none'; $('pfm-resume').style.display = 'inline-block'; flash('已暂停', '#f59e0b'); };
+        $('pfm-resume').onclick = () => { isPaused = false; $('pfm-pause').style.display = 'inline-block'; $('pfm-resume').style.display = 'none'; flash('已继续', '#10b981'); };
+        $('pfm-stop').onclick = () => { shouldStop = true; window.runFlag = false; flash('正在停止…', '#ef4444'); };
 
         for (let i = 0; i < jobs.length; i++) {
           const u = jobs[i];
@@ -1148,7 +1151,7 @@
           while (isPaused && !shouldStop) await sleep(200);
           if (shouldStop) break;
 
-          flash(`⏳ 正在关注（${u.restrict === '1' ? '私密' : '公开'}）：${u.name}（${i + 1}/${jobs.length}）`, '#3b82f6');
+          flash(`正在关注（${u.restrict === '1' ? '私密' : '公开'}）：${u.name}（${i + 1}/${jobs.length}）`, '#3b82f6');
           let verdict = 'fail';
           try {
             const fd = new URLSearchParams();
@@ -1184,19 +1187,19 @@
               // 方案 A：暂停等待，然后原地重试（成功率最高、最不冒犯）
               const coolMin = 3 + Math.round(Math.random() * 2);   // 3~5 分钟，贴合 PixiC 实测
               for (let left = coolMin * 60; left > 0 && !shouldStop; left -= 5) {
-                flash(`⏸ ${why}，冷却中：剩余 ${Math.ceil(left / 60)} 分钟（可随时停止）`, '#f59e0b');
+                flash(`${why}，冷却中：剩余 ${Math.ceil(left / 60)} 分钟（可随时停止）`, '#f59e0b');
                 await sleep(5000);
               }
               if (shouldStop) break;
               rateLimited = false; streakFail = 0;
               i--;   // 重试当前这位
-              flash('▶ 冷却结束，继续。', '#3b82f6');
+              flash('冷却结束，继续。', '#3b82f6');
               continue;
             }
             if (wallMode === 'refollow') {
               // 方案 B：取消关注 → 等一会儿 → 重新关注
               // 代价：对方会收到「又被关注了」的通知；且会改变他在对方列表里的位置。
-              flash(`🔁 ${why}，正在重新关注 ${u.name}…`, '#f59e0b');
+              flash(`${why}，正在重新关注 ${u.name}…`, '#f59e0b');
               try {
                 const del = new URLSearchParams();
                 del.append('mode', 'remove_bookmark_user');
@@ -1222,31 +1225,31 @@
                     done++; confirmed.add(u.id); failed = Math.max(0, failed - 1);
                     rateLimited = false; streakFail = 0;
                     setProgress(done + failed + skipped, jobs.length);
-                    flash(`✅ 已重新关注：${u.name}`, '#10b981');
+                    flash(`已重新关注：${u.name}`, '#10b981');
                     continue;
                   }
                 }
               } catch (_) {}
               shouldStop = true;
-              flash(`⛔ ${why}，重新关注仍未成功，已停止。建议 10–30 分钟后重试。`, '#ef4444');
+              flash(`${why}，重新关注仍未成功，已停止。建议 10–30 分钟后重试。`, '#ef4444');
               break;
             }
             // 方案 C：直接停
             shouldStop = true;
-            flash(`⛔ ${why}。已停止，建议 10–30 分钟后重新开始。`, '#ef4444');
+            flash(`${why}。已停止，建议 10–30 分钟后重新开始。`, '#ef4444');
             break;
           }
 
           // ── 长休眠：每 batchN 个休息一次 ────────────────────────────────────
           const handled = done + failed + skipped;
           if (batchN > 0 && handled > 0 && handled % batchN === 0 && handled < jobs.length) {
-            flash(`😴 已完成 ${handled} 个，长休眠 ${restSec} 秒…（可随时停止）`, '#3b82f6');
+            flash(`长休眠 ${restSec} 秒…已处理 ${handled} 个（可随时停止）`, '#3b82f6');
             for (let left = restSec; left > 0 && !shouldStop; left -= 1) await sleep(1000);
             if (shouldStop) break;
           }
 
           const d = nextDelay(streakFail);
-          flash(`⏳ 已处理 ${handled}/${jobs.length}，${(d / 1000).toFixed(1)} 秒后继续…`, '#3b82f6');
+          flash(`已处理 ${handled}/${jobs.length}，${(d / 1000).toFixed(1)} 秒后继续…`, '#3b82f6');
           await sleep(d);
         }
 
@@ -1256,14 +1259,14 @@
         const c = countByRestrict(remain);
 
         if (rateLimited) {
-          flash(`⛔ 触发限流，已中止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}），建议 10–30 分钟后继续。`, '#ef4444');
+          flash(`触发限流，已中止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}），建议 10–30 分钟后继续。`, '#ef4444');
         } else if (shouldStop) {
-          flash(`⏹ 已停止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}）。`, '#f59e0b');
+          flash(`已停止：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。未完成的 ${remain.length} 位仍保留在列表中（公开 ${c.pub} / 私密 ${c.priv}）。`, '#f59e0b');
         } else {
-          flash(`✅ 已完成：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。列表剩余 ${remain.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。`, '#10b981');
+          flash(`已完成：成功 ${done} · 跳过 ${skipped} · 失败 ${failed}。列表剩余 ${remain.length} 位（公开 ${c.pub} / 私密 ${c.priv}）。`, '#10b981');
         }
       } catch (e) {
-        flash(`❌ 执行出错：${e.message}；未成功的记录已保留。`, '#ef4444');
+        flash(`执行出错：${e.message}；未成功的记录已保留。`, '#ef4444');
       } finally {
         const controls = $('pfm-controls');
         if (controls) controls.style.display = 'none';
@@ -1282,7 +1285,7 @@
 
     $('pfm-view').addEventListener('click', () => {
       const list = loadList();
-      if (!list.length) return flash('❌ 列表为空。', '#ef4444');
+      if (!list.length) return flash('列表为空。', '#ef4444');
       const cnt = countByRestrict(list);
 
       const backdrop = document.createElement('div');
@@ -1290,7 +1293,7 @@
       backdrop.innerHTML = `
         <div id="pfm-modal">
           <div id="pfm-mhead">
-            <span>👥 用户（${list.length}）<small style="font-weight:400;opacity:.7"> 公开 ${cnt.pub} / 私密 ${cnt.priv}</small></span>
+            <span>用户（${list.length}）<small style="font-weight:400;opacity:.7"> 公开 ${cnt.pub} / 私密 ${cnt.priv}</small></span>
             <button id="pfm-mx">✕</button>
           </div>
           <input id="pfm-msearch" placeholder="搜索昵称或 ID…" autofocus>
@@ -1387,13 +1390,13 @@
 
       backdrop.querySelector('#pfm-mclear').onclick = () => {
         if (!confirm(`确认清空全部 ${wList.length} 位？此操作不可撤销。\n仅清空本地列表，不会取消已关注的账号。`)) return;
-        saveList([]); backdrop.remove(); flash('🗑 已清空', '#ef4444');
+        saveList([]); backdrop.remove(); flash('已清空', '#ef4444');
       };
     });
 
     $('pfm-export').onclick = () => {
       const list = loadList();
-      if (!list.length) return flash('❌ 列表为空。', '#ef4444');
+      if (!list.length) return flash('列表为空。', '#ef4444');
       const c = countByRestrict(list);
       if (c.pub > 0 && c.priv > 0) {
         if (confirm(`列表包含公开 ${c.pub} 位、私密 ${c.priv} 位。\n\n「确定」分别导出两个文件（推荐）\n「取消」合并导出一个文件`)) {
@@ -1465,10 +1468,10 @@
           if (added) bits.push(`新增 ${added}`);
           if (updated) bits.push(`可见性更新 ${updated}`);
           if (!added && !updated) bits.push('无变化');
-          flash(`📂 导入完成，已并入「${IMPORT_MODE_TEXT[mode]}」：${bits.join('，')}；` +
+          flash(`导入完成，已并入「${IMPORT_MODE_TEXT[mode]}」：${bits.join('，')}；` +
                 `列表共 ${saved.length} 位（公开 ${c.pub} / 私密 ${c.priv}）`, '#10b981');
         } catch (err) {
-          flash('❌ 导入失败：文件不是有效的 JSON。', '#ef4444');
+          flash('导入失败：文件不是有效的 JSON。', '#ef4444');
         }
       };
       r.readAsText(file);
@@ -1477,9 +1480,9 @@
 
     $('pfm-clear').onclick = () => {
       const n = loadList().length;
-      if (!n) return flash('❌ 列表已为空。', '#ef4444');
+      if (!n) return flash('列表已为空。', '#ef4444');
       if (!confirm(`确认清空列表中的 ${n} 位？\n仅清空本地记录，不会取消已关注的账号。`)) return;
-      saveList([]); flash('🗑 已清空', '#ef4444');
+      saveList([]); flash('已清空', '#ef4444');
     };
 
   }
