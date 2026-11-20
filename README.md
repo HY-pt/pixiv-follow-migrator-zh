@@ -109,8 +109,6 @@ pixiv-follow-migrator-zh.user.js              产物
 pixiv-follow-migrator-zh.meta.js              产物（仅 UserScript 头，供更新比对）
 ```
 
-版本号规则与 Release 说明格式见 [docs/发版规范.md](docs/发版规范.md)。
-
 重新生成并检查语法：
 
 ```bash
@@ -133,7 +131,9 @@ node tests/行为测试-behavior.js fetch-all    # 也支持 verify / order / re
 
 ## 版本与反馈
 
-- 改动记录见 [CHANGELOG.md](CHANGELOG.md)，每个版本的安装包见 [Releases](https://github.com/HY-pt/pixiv-follow-migrator-zh/releases)
+- **当前版本 3.7.1**
+- 改动记录见 [CHANGELOG.md](CHANGELOG.md)，安装包见 [Releases](https://github.com/HY-pt/pixiv-follow-migrator-zh/releases)
+- 版本号规则与发布说明格式见 [docs/发版规范.md](docs/发版规范.md)
 - 问题与建议：[Issues](https://github.com/HY-pt/pixiv-follow-migrator-zh/issues)
 
 ## 许可证

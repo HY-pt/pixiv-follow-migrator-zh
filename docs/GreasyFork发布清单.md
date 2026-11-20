@@ -2,7 +2,7 @@
 
 上传入口：**https://greasyfork.org/scripts/new**（需登录 HY-pt 账号）
 
-> 上传前请确认你已用 **`pixiv-follow-migrator-zh.user.js`**（本仓库根目录，v3.5.2）。
+> 上传前请确认你已用 **`pixiv-follow-migrator-zh.user.js`**（本仓库根目录，v3.7.1）。
 > 该文件已移除 `@downloadURL` / `@updateURL`，符合 Greasy Fork 规则。
 
 ---
@@ -14,7 +14,7 @@ Greasy Fork 提供两种：
 | 方式 | 说明 |
 | --- | --- |
 | **直接粘贴代码** | 打开 `pixiv-follow-migrator-zh.user.js`，全选复制，粘贴进「Paste the script」框 |
-| **上传文件** | 点「Upload」选文件（90 KB，明文，未压缩） |
+| **上传文件** | 点「Upload」选文件（约 90 KB，明文，未压缩） |
 
 ---
 
