@@ -226,6 +226,33 @@ async function untilFinal(max = 30000) {
     ok('stop 模式撞墙后立即停止', /已停止|触发限流/.test(end), `终态「${end}」`);
   }
 
+  // ── ⑦ 长休眠触发点（每 N 个一次） ───────────────────────────────────────
+  if (CASE === 'long-sleep' || CASE === 'all') {
+    // 120 人：50、100 都应触发；注意「最后一位不补休眠」（见脚本里的 handled < jobs.length）
+    const big = Array.from({ length: 120 }, (_, i) => ({ id: String(300000 + i), name: 'L' + i, restrict: '0' }));
+    setList(big);
+    st.mode = 'target'; st.existing = []; st.followSeq = 0;
+    st.followLimit = Infinity;
+    st.confirmQueue = [true];
+    qs('#pfm-batch').value = '50';
+    qs('#pfm-rest').value = '5';
+    qs('#pfm-delay').value = '80';
+    qs('#pfm-jitter').value = '1';
+    qs('#pfm-wall').value = 'pause';
+    const rests = new Set();
+    click('pfm-paste');
+    const t0 = Date.now();
+    while (Date.now() - t0 < 120000) {
+      const t = status();
+      const m = t.match(/长休眠 \d+ 秒…已处理 (\d+) 个/);
+      if (m) rests.add(Number(m[1]));
+      if (/^(已完成|已停止|触发限流)/.test(t)) break;
+      await wait(50);
+    }
+    ok('每 50 个触发长休眠（120 人时 50、100 都触发）', rests.has(50) && rests.has(100),
+       `触发点：${[...rests].sort((a, b) => a - b).join(', ') || '无'}`);
+  }
+
   console.log(`\n--- case: ${CASE}`);
   for (const r of results) console.log((r.pass ? 'PASS ' : 'FAIL ') + r.l + '  →  ' + r.d);
   const bad = results.filter(r => !r.pass).length;

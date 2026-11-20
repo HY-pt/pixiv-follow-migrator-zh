@@ -531,7 +531,7 @@
               <div class="pfm-settings-grid" style="margin-top:6px;">
                 <div class="pfm-setting-item">
                   <label>长休眠间隔</label>
-                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="每关注 N 位后长休眠一次；0 表示不启用">
+                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="每关注 N 位后长休眠一次（最后一位不补）；0 表示不启用">
                 </div>
                 <div class="pfm-setting-item">
                   <label>长休眠时长（秒）</label>

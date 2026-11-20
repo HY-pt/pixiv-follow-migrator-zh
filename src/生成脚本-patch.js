@@ -241,7 +241,7 @@ const codePairs = [
    '              <summary>高级</summary>\n' +
    '              <div class="pfm-settings-grid" style="margin-top:6px;">\n' +
    '                <div class="pfm-setting-item">\n                  <label>长休眠间隔</label>\n' +
-   '                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="每关注 N 位后长休眠一次；0 表示不启用">\n' +
+   '                  <input id="pfm-batch" class="pfm-input" type="number" value="50" min="0" max="500" step="10" title="每关注 N 位后长休眠一次（最后一位不补）；0 表示不启用">\n' +
    '                </div>\n' +
    '                <div class="pfm-setting-item">\n                  <label>长休眠时长（秒）</label>\n' +
    '                  <input id="pfm-rest" class="pfm-input" type="number" value="30" min="5" max="600" step="5">\n' +
