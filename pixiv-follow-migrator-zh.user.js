@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Pixiv Follow Migrator 中文增强版
 // @namespace https://github.com/HY-pt/pixiv-follow-migrator-zh
-// @version 3.7.0
+// @version 3.7.1
 // @description 在 Pixiv 账号之间迁移关注列表 —— 分页抓取全部关注、区分公开/私密、随机抖动防限流、断点续传。界面由本仓库自行汉化（上游为英文界面）并修复缺陷。
 // @author HY-pt
 // @license MIT
@@ -480,7 +480,7 @@
     panel.id = 'pfm';
     panel.innerHTML = `
       <div id="pfm-header">
-        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.7.0 中文</span></div>
+        <div class="pfm-title"><img class="pfm-title-icon" src="${PFM_ICON_URI}" width="18" height="18" alt=""> Pixiv 关注迁移 <span class="pfm-title-version">v3.7.1 中文</span></div>
         <div id="pfm-hbtns">
           <button id="pfm-min" class="pfm-winbtn" title="最小化到悬浮图标" aria-label="最小化"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2.2" y="7.4" width="7" height="1.8" rx=".5" fill="currentColor"/></svg></button>
         </div>
