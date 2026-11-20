@@ -2,6 +2,8 @@
 
 上传入口：**https://greasyfork.org/zh-CN/scripts/new**（需登录 HY-pt 账号）
 
+> **已发布**：<https://greasyfork.org/zh-CN/scripts/606391-pixiv-follow-migrator-%E4%B8%AD%E6%96%87%E5%A2%9E%E5%BC%BA%E7%89%88>（v3.7.1，2026-11-20）
+>
 > 待上传文件：仓库根目录的 `pixiv-follow-migrator-zh.user.js`（v3.7.1，约 90 KB，明文）。
 > 已移除 `@downloadURL` / `@updateURL`，符合 Greasy Fork「不得提供替代下载源」规则。
 
@@ -96,12 +98,12 @@
 
 ---
 
-## 四、上传后要回填的两处
+## 四、发布后维护
 
-1. **README 安装章节**：第 4 步现在写的是「Greasy Fork：尚未发布」，拿到站内地址后改成实际链接
-2. **本文件开头的上传入口**：补一行「已在 Greasy Fork 发布：<链接>」
+1. **README 安装章节**：已把 Greasy Fork 列为推荐安装方式并附上站内链接
+2. **本文件开头**：已标注发布链接与版本
 
-Greasy Fork 会自动把 `@updateURL` / `@downloadURL` 指向其站内地址，脚本本身不需要改动。
+**发新版时**：在 Greasy Fork 脚本页点「更新脚本」，上传同一份 `pixiv-follow-migrator-zh.user.js`（脚本 ID 不变，站内版本跟着变）。Greasy Fork 会自动把 `@updateURL` / `@downloadURL` 指向其站内地址，仓库里的文件不需要改动。
 
 ---
 

@@ -59,22 +59,25 @@
 ## 安装
 
 1. 先装 [Tampermonkey](https://www.tampermonkey.net/)（Edge / Chrome）或 Violentmonkey
-2. **推荐：装 raw 地址** —— 脚本管理器会记住这个地址，之后据此检查更新
+2. **推荐：从 Greasy Fork 安装** —— 站内托管，脚本更新会自动推送
+
+   [Greasy Fork · Pixiv Follow Migrator 中文增强版](https://greasyfork.org/zh-CN/scripts/606391-pixiv-follow-migrator-%E4%B8%AD%E6%96%87%E5%A2%9E%E5%BC%BA%E7%89%88)
+
+3. 或者装 raw 地址（脚本管理器会记住这个地址，据此检查更新）
 
    ```
    https://raw.githubusercontent.com/HY-pt/pixiv-follow-migrator-zh/main/pixiv-follow-migrator-zh.user.js
    ```
 
-3. 或者从 [最新 Release](https://github.com/HY-pt/pixiv-follow-migrator-zh/releases/latest) 下载 `pixiv-follow-migrator-zh.user.js`。
+4. 或者从 [最新 Release](https://github.com/HY-pt/pixiv-follow-migrator-zh/releases/latest) 下载 `pixiv-follow-migrator-zh.user.js`。
 
    这样得到的是**一次性快照**，不会自动更新
-4. Greasy Fork：**尚未发布**，发布后在这里补链接
 
 > **与上游并存提示**：本分支的 `@name`（含「中文增强版」后缀）与 `@namespace` 都与上游区分，会被识别为独立脚本。
 > **安装前请先删掉上游旧版**，否则会同时出现两个面板。
 
-> **关于更新来源**：脚本刻意**不含** `@downloadURL` / `@updateURL` —— Greasy Fork 规则禁止指向外部替代源。
-> 从上面的 raw 地址安装时由脚本管理器按安装地址检查更新；从 Release 下载的附件需手动替换。
+> **关于更新来源**：仓库里的脚本刻意**不含** `@downloadURL` / `@updateURL` —— Greasy Fork 规则禁止指向外部替代源。
+> 从 Greasy Fork 安装的那份由站内自动托管这两个字段，随站内版本更新；从 raw 地址安装的按安装地址检查更新；从 Release 下载的附件需手动替换。
 
 ## 使用要点
 
@@ -133,6 +136,7 @@ node tests/行为测试-behavior.js fetch-all    # 也支持 verify / order / re
 
 - **当前版本 3.7.1**
 - 改动记录见 [CHANGELOG.md](CHANGELOG.md)，安装包见 [Releases](https://github.com/HY-pt/pixiv-follow-migrator-zh/releases)
+- Greasy Fork 页面（自动更新源）：[脚本 606391](https://greasyfork.org/zh-CN/scripts/606391-pixiv-follow-migrator-%E4%B8%AD%E6%96%87%E5%A2%9E%E5%BC%BA%E7%89%88)
 - 版本号规则与发布说明格式见 [docs/发版规范.md](docs/发版规范.md)
 - 问题与建议：[Issues](https://github.com/HY-pt/pixiv-follow-migrator-zh/issues)
 
