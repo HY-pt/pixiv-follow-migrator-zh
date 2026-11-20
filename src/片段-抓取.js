@@ -65,7 +65,7 @@
     // 关键两点：
     //   ① limit=100 时服务端会忽略 offset（见 README），所以用 24；
     //   ② 不能因为「本页不足 24 条」就判定结束 —— pixiv 在深翻页时会返回不完整的页，
-    //      提前 break 就会停在 4 页左右（96 条），这正是「只抓到 95/128」的成因。
+    //      提前 break 就会稳定停在 4 页左右（约 96 条），拿不到后面的用户。
     const PFM_PAGE = 24;
     const PFM_CURSOR_KEY = 'pfm_cursor';
 

@@ -312,7 +312,7 @@ const ok = (label, cond, detail) => results.push({ label, pass: !!cond, detail }
     ok('没有把重复数据当成完整列表', getList().length <= 48, '入库 ' + getList().length + '（应只拿到第一页左右，不会堆成几百）');
   }
 
-  // ── 深翻页返回不满页：不能提前 break（复现 95/128 那个 bug） ──────────────
+  // ── 深翻页返回不满页：不能提前 break（否则会少抓一大截） ────────────────
   if (CASE === 'short-page' || CASE === 'all') {
     cfg.mode = 'source'; cfg.ignoreOffset = false;
     cfg.shortPageFrom = 96;          // 从第 5 页（offset 96）起每页只给 12 条
