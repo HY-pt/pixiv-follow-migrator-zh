@@ -4,7 +4,7 @@
 
 > **已发布**：<https://greasyfork.org/zh-CN/scripts/606391-pixiv-follow-migrator-%E4%B8%AD%E6%96%87%E5%A2%9E%E5%BC%BA%E7%89%88>（v3.7.1，2026-11-20）
 >
-> 待上传文件：仓库根目录的 `pixiv-follow-migrator-zh.user.js`（v3.7.1，约 90 KB，明文）。
+> 待上传文件：仓库根目录的 `pixiv-follow-migrator-zh.user.js`（v3.7.1，约 88 KB，明文）。
 > 已移除 `@downloadURL` / `@updateURL`，符合 Greasy Fork「不得提供替代下载源」规则。
 
 ---
@@ -123,7 +123,7 @@
 | 无追踪 / 广告 / 挖矿等 antifeatures | ✅ 无网络上报，数据只进 GM 存储 |
 | 主要功能必须在提交的代码内 | ✅ 全部内联，不从外部加载 |
 | 不得提供替代下载源 | ✅ 已移除 `@downloadURL` / `@updateURL` |
-| 代码不得混淆 / 压缩 | ✅ 全明文（约 90 KB） |
+| 代码不得混淆 / 压缩 | ✅ 全明文（约 88 KB，站内显示 88.0 KB） |
 | 体积 ≤ 2 MB | ✅ |
 | 不高于每日一次的自检更新 | ✅ 脚本内无自检 |
 | 推广作者仓库被允许 | ✅ 含 `@homepageURL` / `@supportURL` |
