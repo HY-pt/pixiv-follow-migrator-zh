@@ -188,9 +188,11 @@ const codePairs = [
    '      border-left: 0; border-right: 0; box-shadow: 0 2px 8px rgba(0,0,0,.10); }\n' +
    '    /* 高级设置折叠：默认收起，把 8 行压到 4 行。 */\n' +
    '    /* 折叠区：实线边框 + 浅底 + 主文字色，确保一眼看出可点开 */\n' +
-   '    #pfm-adv { border: 1px solid ${border2}; border-radius: 10px; padding: 0 12px 12px;\n' +
+   '    #pfm-adv { border: 1px solid ${border2}; border-radius: 10px; padding: 0 12px;\n' +
    '      background: ${cardHover}; }\n' +
-   '    #pfm-adv > summary { cursor: pointer; padding: 10px 2px; font-size: 12px; font-weight: 700;\n' +
+   '    /* 收起时不留下边距；展开时才补上，避免折叠行被撑高 */\n' +
+   '    #pfm-adv[open] { padding-bottom: 12px; }\n' +
+   '    #pfm-adv > summary { cursor: pointer; padding: 6px 2px; font-size: 12px; font-weight: 700; line-height: 18px;\n' +
    '      color: ${text};\n' +
    '      list-style: none; display: flex; justify-content: space-between; align-items: center; }\n' +
    '    #pfm-adv > summary::-webkit-details-marker { display: none; }\n' +
